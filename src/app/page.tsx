@@ -1,13 +1,14 @@
 import Link from 'next/link';
-import { dummyReferrals, getReferralsByStatus } from '@/lib/dummy-data';
+// Removed dummy data import - using real data only
 import { config, formatPhoneForDisplay, getPhoneLink } from '@/lib/config';
 
 export default function Home() {
+  // Remove dummy referral counts - focus on VAPI call system
   const statusCounts = {
-    all: dummyReferrals.length,
-    pending: getReferralsByStatus('pending').length,
-    scheduled: getReferralsByStatus('scheduled').length,
-    completed: getReferralsByStatus('completed').length,
+    all: 0,
+    pending: 0,
+    scheduled: 0,
+    completed: 0,
   };
 
   return (

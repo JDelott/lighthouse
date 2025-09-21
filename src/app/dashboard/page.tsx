@@ -2,15 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { 
-  dummyReferrals, 
-  dummyPatients, 
-  dummyProviders, 
-  getReferralsByStatus,
-  dummyVapiCallSessions,
-  getVapiCallSessionsByStatus,
-  getRecentVapiCallSessions 
-} from '@/lib/dummy-data';
+// Removed dummy data imports - using real data only
 import { getAllCallSessions } from '@/lib/call-processor';
 import { Referral, VapiCallSession } from '@/lib/types';
 import CallSessionCard from '../components/CallSessionCard';
@@ -21,14 +13,15 @@ export default function DashboardPage() {
   const [selectedStatus, setSelectedStatus] = useState<'all' | Referral['status']>('all');
   const [activeTab, setActiveTab] = useState<'referrals' | 'calls'>('referrals');
   
+  // Remove dummy referrals - this will be replaced with real referral system later
   const statusCounts = {
-    all: dummyReferrals.length,
-    pending: getReferralsByStatus('pending').length,
-    assigned: getReferralsByStatus('assigned').length,
-    contacted: getReferralsByStatus('contacted').length,
-    scheduled: getReferralsByStatus('scheduled').length,
-    completed: getReferralsByStatus('completed').length,
-    cancelled: getReferralsByStatus('cancelled').length,
+    all: 0,
+    pending: 0,
+    assigned: 0,
+    contacted: 0,
+    scheduled: 0,
+    completed: 0,
+    cancelled: 0,
   };
 
   // Get real call sessions only (no dummy data fallback)
@@ -43,9 +36,8 @@ export default function DashboardPage() {
     urgentRequests: allCallSessions.filter(session => session.metadata?.urgencyLevel && session.metadata.urgencyLevel >= 4).length,
   };
 
-  const filteredReferrals = selectedStatus === 'all' 
-    ? dummyReferrals 
-    : getReferralsByStatus(selectedStatus);
+  // No referrals to show - remove dummy data
+  const filteredReferrals: Referral[] = [];
 
   // Show recent real call sessions only
   const recentCallSessions = allCallSessions.slice(0, 5);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VapiWebhookEvent, VapiCallSession, VapiTranscriptEntry } from '@/lib/types';
-import { dummyVapiCallSessions, dummyVapiTranscripts } from '@/lib/dummy-data';
+// Removed dummy data import - using real data only
 import { 
   realCallSessions, 
   realTranscripts, 
