@@ -38,14 +38,17 @@ export async function POST(request: NextRequest) {
 
     switch (event.type) {
       case 'call-started':
+      case 'Status Update':
         await handleCallStarted(event);
         break;
       
       case 'call-ended':
+      case 'End Of Call Report':
         await handleCallEnded(event);
         break;
       
       case 'transcript':
+      case 'Conversation Update':
         await handleTranscript(event);
         break;
       
@@ -53,8 +56,13 @@ export async function POST(request: NextRequest) {
         await handleFunctionCall(event);
         break;
       
+      case 'Speech Update':
+        // Handle speech updates if needed
+        console.log('📢 Speech update received');
+        break;
+      
       default:
-        console.log('Unhandled webhook event type:', event.type);
+        console.log('⚠️ Unhandled webhook event type:', event.type);
     }
 
     return NextResponse.json({ success: true });
