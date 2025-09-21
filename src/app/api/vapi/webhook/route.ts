@@ -28,10 +28,12 @@ export async function POST(request: NextRequest) {
 
     const event: VapiWebhookEvent = await request.json();
     
-    console.log('Received Vapi webhook event:', {
+    console.log('🔔 Received Vapi webhook event:', {
       type: event.type,
       callId: event.callId,
-      timestamp: event.timestamp
+      timestamp: event.timestamp,
+      assistantId: event.assistantId,
+      headers: Object.fromEntries(request.headers.entries())
     });
 
     switch (event.type) {
