@@ -1,0 +1,108 @@
+[
+  {
+    "name": "schedule_appointment",
+    "description": "Book an appointment slot for the client",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "appointmentType": {
+          "type": "string",
+          "enum": ["initial_consultation", "follow_up", "couples_therapy", "family_therapy", "psychiatric_eval", "urgent_consultation"],
+          "description": "Type of appointment being scheduled"
+        },
+        "urgency": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Urgency level (1=routine, 5=urgent but not crisis)"
+        },
+        "preferredDates": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Client's preferred appointment dates"
+        },
+        "preferredTimes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Client's preferred appointment times"
+        },
+        "duration": {
+          "type": "number",
+          "enum": [45, 60, 90],
+          "description": "Appointment duration in minutes"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any special scheduling notes or requirements"
+        }
+      },
+      "required": ["appointmentType", "urgency", "preferredDates", "preferredTimes"]
+    }
+  },
+  {
+    "name": "collect_intake_info",
+    "description": "Store preliminary client intake information",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "clientInfo": {
+          "type": "object",
+          "properties": {
+            "fullName": { "type": "string" },
+            "dateOfBirth": { "type": "string" },
+            "phone": { "type": "string" },
+            "email": { "type": "string" },
+            "address": { "type": "string" }
+          },
+          "required": ["fullName", "phone"]
+        },
+        "insuranceInfo": {
+          "type": "object",
+          "properties": {
+            "provider": { "type": "string" },
+            "memberId": { "type": "string" },
+            "groupNumber": { "type": "string" }
+          }
+        },
+        "reasonForSeeking": {
+          "type": "string",
+          "description": "Brief description of why they're seeking therapy"
+        },
+        "previousTherapy": {
+          "type": "boolean",
+          "description": "Whether they've been in therapy before"
+        },
+        "currentMedications": {
+          "type": "string",
+          "description": "Current medications or treatments"
+        }
+      },
+      "required": ["clientInfo", "reasonForSeeking"]
+    }
+  },
+  {
+    "name": "send_confirmation",
+    "description": "Send appointment confirmation and preparation materials",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "appointmentDetails": {
+          "type": "object",
+          "properties": {
+            "date": { "type": "string" },
+            "time": { "type": "string" },
+            "duration": { "type": "number" },
+            "type": { "type": "string" }
+          },
+          "required": ["date", "time", "type"]
+        },
+        "contactMethod": {
+          "type": "string",
+          "enum": ["email", "sms", "both"],
+          "description": "How to send confirmation"
+        }
+      },
+      "required": ["appointmentDetails", "contactMethod"]
+    }
+  }
+]

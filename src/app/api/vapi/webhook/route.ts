@@ -3,7 +3,7 @@ import { VapiWebhookEvent, VapiCallSession, VapiTranscriptEntry } from '@/lib/ty
 import { dummyVapiCallSessions, dummyVapiTranscripts } from '@/lib/dummy-data';
 
 // In a real implementation, you would verify the webhook signature
-function verifyVapiWebhook(request: NextRequest): boolean {
+function verifyVapiWebhook(_request: NextRequest): boolean {
   // TODO: Implement Vapi webhook signature verification
   // const signature = request.headers.get('x-vapi-signature');
   // const payload = await request.text();
@@ -163,16 +163,16 @@ async function handleFunctionCall(event: VapiWebhookEvent) {
   
   // Handle specific function calls from the AI assistant
   switch (functionData.functionCall?.name) {
-    case 'schedule_callback':
-      await handleScheduleCallback(event.callId, functionData.functionCall.parameters);
+    case 'schedule_appointment':
+      await handleScheduleAppointment(event.callId, functionData.functionCall.parameters);
       break;
     
-    case 'escalate_to_therapist':
-      await handleEscalateToTherapist(event.callId, functionData.functionCall.parameters);
+    case 'collect_intake_info':
+      await handleCollectIntakeInfo(event.callId, functionData.functionCall.parameters);
       break;
     
-    case 'provide_resources':
-      await handleProvideResources(event.callId, functionData.functionCall.parameters);
+    case 'send_confirmation':
+      await handleSendConfirmation(event.callId, functionData.functionCall.parameters);
       break;
     
     default:
@@ -180,34 +180,64 @@ async function handleFunctionCall(event: VapiWebhookEvent) {
   }
 }
 
-async function handleScheduleCallback(callId: string, parameters: any) {
-  // Handle callback scheduling
-  console.log('Scheduling callback for call:', callId, parameters);
-  
-  // In a real implementation:
-  // 1. Create a callback task
-  // 2. Add to therapist's calendar
-  // 3. Send confirmation to client
-}
-
-async function handleEscalateToTherapist(callId: string, parameters: any) {
-  // Handle urgent escalation
-  console.log('Escalating to therapist for call:', callId, parameters);
+async function handleScheduleAppointment(callId: string, parameters: unknown) {
+  console.log('Scheduling appointment for call:', callId, parameters);
   
   const callSession = dummyVapiCallSessions.find(session => session.callId === callId);
-  if (callSession) {
-    await notifyTherapistUrgent(callSession);
+  if (callSession && callSession.metadata && typeof parameters === 'object' && parameters !== null) {
+    const params = parameters as Record<string, unknown>;
+    // Update call session with appointment details
+    callSession.metadata.appointmentType = params.appointmentType as any;
+    callSession.metadata.urgencyLevel = params.urgency as number;
+    callSession.metadata.preferredDates = params.preferredDates as string[];
+    callSession.metadata.preferredTimes = params.preferredTimes as string[];
+    callSession.metadata.schedulingStatus = 'requested';
+    callSession.callType = 'appointment_request';
+    
+    console.log('Updated call session with appointment request');
   }
-}
-
-async function handleProvideResources(callId: string, parameters: any) {
-  // Handle resource provision
-  console.log('Providing resources for call:', callId, parameters);
   
   // In a real implementation:
-  // 1. Send SMS/email with resources
-  // 2. Log resource provision
-  // 3. Track resource engagement
+  // 1. Check therapist availability
+  // 2. Book appointment slot
+  // 3. Create calendar event
+  // 4. Send confirmation
+}
+
+async function handleCollectIntakeInfo(callId: string, parameters: unknown) {
+  console.log('Collecting intake info for call:', callId, parameters);
+  
+  const callSession = dummyVapiCallSessions.find(session => session.callId === callId);
+  if (callSession && callSession.metadata && typeof parameters === 'object' && parameters !== null) {
+    const params = parameters as Record<string, any>;
+    // Update call session with client info
+    callSession.metadata.clientName = params.clientInfo?.fullName;
+    callSession.metadata.intakeCompleted = true;
+    
+    // Store intake information
+    console.log('Intake completed for:', params.clientInfo?.fullName);
+  }
+  
+  // In a real implementation:
+  // 1. Store client information securely
+  // 2. Verify insurance coverage
+  // 3. Create client profile
+  // 4. Generate intake summary for therapist
+}
+
+async function handleSendConfirmation(callId: string, parameters: unknown) {
+  console.log('Sending confirmation for call:', callId, parameters);
+  
+  const callSession = dummyVapiCallSessions.find(session => session.callId === callId);
+  if (callSession && callSession.metadata) {
+    callSession.metadata.schedulingStatus = 'scheduled';
+  }
+  
+  // In a real implementation:
+  // 1. Send email/SMS confirmation
+  // 2. Include appointment preparation materials
+  // 3. Add to client's calendar
+  // 4. Set appointment reminders
 }
 
 async function notifyTherapistUrgent(callSession: VapiCallSession) {

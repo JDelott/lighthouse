@@ -231,7 +231,7 @@ export interface VapiWebhookEvent {
   callId: string;
   assistantId: string;
   timestamp: string;
-  data: any;
+  data: unknown;
 }
 
 export interface TherapistNote {

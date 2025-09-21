@@ -11,7 +11,7 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
-    const status = url.searchParams.get('status') as any;
+    const status = url.searchParams.get('status') as 'in-progress' | 'completed' | 'failed' | 'cancelled' | null;
     const patientId = url.searchParams.get('patientId');
     const limit = url.searchParams.get('limit');
     const callId = url.searchParams.get('callId');

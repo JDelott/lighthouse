@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { dummyReferrals, getReferralsByStatus } from '@/lib/dummy-data';
+import { config, formatPhoneForDisplay, getPhoneLink } from '@/lib/config';
 
 export default function Home() {
   const statusCounts = {
@@ -65,13 +66,13 @@ export default function Home() {
             </div>
             <div className="text-center">
               <a 
-                href="tel:+15551234567" 
+                href={`tel:${getPhoneLink(config.vapi.phoneNumber)}`}
                 className="text-4xl font-bold text-blue-600 hover:text-blue-700 transition-colors"
               >
-                (555) 123-4567
+                {formatPhoneForDisplay(config.vapi.phoneNumber)}
               </a>
               <p className="text-sm text-gray-500 mt-2">
-                Call anytime - even when Dr. Martinez is with clients
+                Call anytime - even when {config.practice.therapistName} is with clients
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 text-sm">
