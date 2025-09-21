@@ -4,6 +4,11 @@ import {
   getTranscriptsByCallSession,
   getTherapistNotesByCallSession 
 } from '@/lib/dummy-data';
+import { 
+  getCallSessionById, 
+  getTranscriptsByCallId,
+  getTherapistNotes 
+} from '@/lib/call-processor';
 
 // GET /api/vapi/calls/[id] - Get specific call session with transcripts and notes
 export async function GET(
@@ -11,7 +16,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const callSession = findVapiCallSessionById(params.id);
+    // Get real call session only (no dummy data fallback)
+    const callSession = getCallSessionById(params.id);
     
     if (!callSession) {
       return NextResponse.json(
@@ -23,8 +29,9 @@ export async function GET(
       );
     }
 
-    const transcripts = getTranscriptsByCallSession(params.id);
-    const therapistNotes = getTherapistNotesByCallSession(params.id);
+    const transcripts = getTranscriptsByCallId(params.id);
+    const allTherapistNotes = getTherapistNotes();
+    const therapistNotes = allTherapistNotes.filter(note => note.callSessionId === params.id);
 
     return NextResponse.json({
       success: true,

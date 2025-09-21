@@ -6,6 +6,7 @@ import {
   getVapiCallSessionsByPatient,
   findVapiCallSessionById 
 } from '@/lib/dummy-data';
+import { getAllCallSessions, getCallSessionById } from '@/lib/call-processor';
 
 // GET /api/vapi/calls - Retrieve call sessions with filtering
 export async function GET(request: NextRequest) {
@@ -16,26 +17,28 @@ export async function GET(request: NextRequest) {
     const limit = url.searchParams.get('limit');
     const callId = url.searchParams.get('callId');
 
-    let callSessions = dummyVapiCallSessions;
+    // Get real call sessions only (no dummy data)
+    let callSessions = getAllCallSessions();
 
     // Filter by specific call ID
     if (callId) {
-      const session = findVapiCallSessionById(callId);
+      const session = getCallSessionById(callId);
       return NextResponse.json({
         success: true,
         data: session ? [session] : [],
-        total: session ? 1 : 0
+        total: session ? 1 : 0,
+        source: 'real'
       });
     }
 
     // Filter by status
     if (status && ['in-progress', 'completed', 'failed', 'cancelled'].includes(status)) {
-      callSessions = getVapiCallSessionsByStatus(status);
+      callSessions = callSessions.filter(session => session.status === status);
     }
 
     // Filter by patient
     if (patientId) {
-      callSessions = getVapiCallSessionsByPatient(patientId);
+      callSessions = callSessions.filter(session => session.patientId === patientId);
     }
 
     // Apply limit
@@ -55,6 +58,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: callSessions,
       total: callSessions.length,
+      source: 'real',
       filters: {
         status,
         patientId,

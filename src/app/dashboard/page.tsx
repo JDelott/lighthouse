@@ -11,6 +11,7 @@ import {
   getVapiCallSessionsByStatus,
   getRecentVapiCallSessions 
 } from '@/lib/dummy-data';
+import { getAllCallSessions } from '@/lib/call-processor';
 import { Referral, VapiCallSession } from '@/lib/types';
 import CallSessionCard from '../components/CallSessionCard';
 import VapiTestButton from '../components/VapiTestButton';
@@ -30,20 +31,24 @@ export default function DashboardPage() {
     cancelled: getReferralsByStatus('cancelled').length,
   };
 
+  // Get real call sessions only (no dummy data fallback)
+  const allCallSessions = getAllCallSessions();
+  
   const callSessionCounts = {
-    total: dummyVapiCallSessions.length,
-    completed: getVapiCallSessionsByStatus('completed').length,
-    inProgress: getVapiCallSessionsByStatus('in-progress').length,
-    appointmentRequests: dummyVapiCallSessions.filter(session => session.callType === 'appointment_request').length,
-    pendingScheduling: dummyVapiCallSessions.filter(session => session.metadata?.schedulingStatus === 'pending_confirmation').length,
-    urgentRequests: dummyVapiCallSessions.filter(session => session.metadata?.urgencyLevel && session.metadata.urgencyLevel >= 4).length,
+    total: allCallSessions.length,
+    completed: allCallSessions.filter(session => session.status === 'completed').length,
+    inProgress: allCallSessions.filter(session => session.status === 'in-progress').length,
+    appointmentRequests: allCallSessions.filter(session => session.callType === 'appointment_request').length,
+    pendingScheduling: allCallSessions.filter(session => session.metadata?.schedulingStatus === 'pending_confirmation').length,
+    urgentRequests: allCallSessions.filter(session => session.metadata?.urgencyLevel && session.metadata.urgencyLevel >= 4).length,
   };
 
   const filteredReferrals = selectedStatus === 'all' 
     ? dummyReferrals 
     : getReferralsByStatus(selectedStatus);
 
-  const recentCallSessions = getRecentVapiCallSessions(5);
+  // Show recent real call sessions only
+  const recentCallSessions = allCallSessions.slice(0, 5);
 
   const getStatusColor = (status: Referral['status']) => {
     switch (status) {

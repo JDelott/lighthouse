@@ -3,6 +3,7 @@ import {
   dummyVapiTranscripts,
   getTranscriptsByCallSession 
 } from '@/lib/dummy-data';
+import { realTranscripts, getTranscriptsByCallId } from '@/lib/call-processor';
 
 // GET /api/vapi/transcripts - Get transcripts with filtering
 export async function GET(request: NextRequest) {
@@ -12,11 +13,12 @@ export async function GET(request: NextRequest) {
     const speaker = url.searchParams.get('speaker') as 'user' | 'assistant' | null;
     const limit = url.searchParams.get('limit');
 
-    let transcripts = dummyVapiTranscripts;
+    // Get real transcripts only (no dummy data)
+    let transcripts = realTranscripts;
 
     // Filter by call session
     if (callSessionId) {
-      transcripts = getTranscriptsByCallSession(callSessionId);
+      transcripts = getTranscriptsByCallId(callSessionId);
     }
 
     // Filter by speaker

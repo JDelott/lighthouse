@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VapiWebhookEvent, VapiCallSession, VapiTranscriptEntry } from '@/lib/types';
 import { dummyVapiCallSessions, dummyVapiTranscripts } from '@/lib/dummy-data';
+import { 
+  realCallSessions, 
+  realTranscripts, 
+  processCompletedCall 
+} from '@/lib/call-processor';
 
 // In a real implementation, you would verify the webhook signature
 function verifyVapiWebhook(_request: NextRequest): boolean {
@@ -72,22 +77,22 @@ async function handleCallStarted(event: VapiWebhookEvent) {
     status: 'in-progress',
     startedAt: event.timestamp,
     assistantId: event.assistantId,
+    callType: 'appointment_request', // Default type
     createdAt: event.timestamp,
     updatedAt: event.timestamp
   };
 
-  // In a real app, save to database
-  // For now, add to dummy data
-  dummyVapiCallSessions.push(newCallSession);
+  // Store in real call sessions (replaces dummy data)
+  realCallSessions.push(newCallSession);
   
-  console.log('Call started:', newCallSession.id);
+  console.log('Real call started:', newCallSession.id, 'Phone:', newCallSession.clientPhone);
 }
 
 async function handleCallEnded(event: VapiWebhookEvent) {
   const callData = event.data;
   
-  // Find existing call session
-  const callSession = dummyVapiCallSessions.find(session => session.callId === event.callId);
+  // Find existing call session in real data
+  const callSession = realCallSessions.find(session => session.callId === event.callId);
   
   if (callSession) {
     // Update call session with end data
@@ -95,7 +100,7 @@ async function handleCallEnded(event: VapiWebhookEvent) {
     callSession.endedAt = event.timestamp;
     callSession.duration = callData.duration;
     callSession.transcript = callData.transcript;
-    callSession.summary = callData.summary;
+    callSession.summary = callData.summary; // Will be replaced by AI summary
     callSession.recordingUrl = callData.recordingUrl;
     callSession.updatedAt = event.timestamp;
     
@@ -103,27 +108,35 @@ async function handleCallEnded(event: VapiWebhookEvent) {
     if (callData.analysis) {
       callSession.metadata = {
         emotionalState: callData.analysis.sentiment || 'neutral',
-        urgencyLevel: callData.analysis.urgency || 5,
+        urgencyLevel: callData.analysis.urgency || 3,
         keyTopics: callData.analysis.topics || [],
         followUpRequired: callData.analysis.followUpNeeded || false,
         referralNeeded: callData.analysis.referralRecommended || false
       };
     }
     
-    console.log('Call ended:', callSession.id, 'Duration:', callSession.duration, 'seconds');
+    console.log('Real call ended:', callSession.id, 'Duration:', callSession.duration, 'seconds');
+    
+    // Process completed call with AI summarization and data extraction
+    if (callSession.status === 'completed') {
+      console.log('Processing completed call with AI...');
+      await processCompletedCall(callSession);
+    }
     
     // Check if immediate therapist notification is needed
     if (callSession.metadata?.urgencyLevel && callSession.metadata.urgencyLevel > 7) {
       await notifyTherapistUrgent(callSession);
     }
+  } else {
+    console.error('Call session not found for callId:', event.callId);
   }
 }
 
 async function handleTranscript(event: VapiWebhookEvent) {
   const transcriptData = event.data;
   
-  // Find the call session
-  const callSession = dummyVapiCallSessions.find(session => session.callId === event.callId);
+  // Find the call session in real data
+  const callSession = realCallSessions.find(session => session.callId === event.callId);
   
   if (callSession && transcriptData.text) {
     // Create transcript entry
@@ -146,9 +159,10 @@ async function handleTranscript(event: VapiWebhookEvent) {
     }
     
     // In a real app, save to database
-    dummyVapiTranscripts.push(transcriptEntry);
+    // Store transcript entry in real data
+    realTranscripts.push(transcriptEntry);
     
-    console.log('Transcript received for call:', callSession.id);
+    console.log('Real transcript received for call:', callSession.id);
   }
 }
 

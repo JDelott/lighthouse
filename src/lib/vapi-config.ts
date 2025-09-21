@@ -338,5 +338,6 @@ export const vapiEnvConfig = {
   VAPI_API_KEY: process.env.VAPI_API_KEY || '',
   VAPI_PHONE_NUMBER: process.env.VAPI_PHONE_NUMBER || '+15551234567',
   VAPI_WEBHOOK_URL: process.env.VAPI_WEBHOOK_URL || 'https://your-domain.com/api/vapi/webhook',
-  VAPI_WEBHOOK_SECRET: process.env.VAPI_WEBHOOK_SECRET || ''
+  VAPI_WEBHOOK_SECRET: process.env.VAPI_WEBHOOK_SECRET || '',
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || ''
 };
