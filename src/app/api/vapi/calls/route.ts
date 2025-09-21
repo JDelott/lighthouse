@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { 
+  dummyVapiCallSessions, 
+  getVapiCallSessionsByStatus, 
+  getRecentVapiCallSessions,
+  getVapiCallSessionsByPatient,
+  findVapiCallSessionById 
+} from '@/lib/dummy-data';
+
+// GET /api/vapi/calls - Retrieve call sessions with filtering
+export async function GET(request: NextRequest) {
+  try {
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status') as any;
+    const patientId = url.searchParams.get('patientId');
+    const limit = url.searchParams.get('limit');
+    const callId = url.searchParams.get('callId');
+
+    let callSessions = dummyVapiCallSessions;
+
+    // Filter by specific call ID
+    if (callId) {
+      const session = findVapiCallSessionById(callId);
+      return NextResponse.json({
+        success: true,
+        data: session ? [session] : [],
+        total: session ? 1 : 0
+      });
+    }
+
+    // Filter by status
+    if (status && ['in-progress', 'completed', 'failed', 'cancelled'].includes(status)) {
+      callSessions = getVapiCallSessionsByStatus(status);
+    }
+
+    // Filter by patient
+    if (patientId) {
+      callSessions = getVapiCallSessionsByPatient(patientId);
+    }
+
+    // Apply limit
+    if (limit) {
+      const limitNum = parseInt(limit);
+      if (!isNaN(limitNum) && limitNum > 0) {
+        callSessions = callSessions.slice(0, limitNum);
+      }
+    }
+
+    // Sort by most recent first
+    callSessions = callSessions.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: callSessions,
+      total: callSessions.length,
+      filters: {
+        status,
+        patientId,
+        limit: limit ? parseInt(limit) : undefined
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching Vapi call sessions:', error);
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Failed to fetch call sessions' 
+      },
+      { status: 500 }
+    );
+  }
+}

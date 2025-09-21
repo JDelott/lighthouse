@@ -133,3 +133,138 @@ export type ReferralFormData = {
   preferredProvider?: string;
   specialtyPreference?: string[];
 };
+
+// Vapi AI Integration Types
+export interface VapiCallSession {
+  id: string;
+  callId: string; // Vapi call ID
+  patientId?: string; // Link to patient if identified
+  clientPhone: string;
+  status: 'in-progress' | 'completed' | 'failed' | 'cancelled';
+  startedAt: string;
+  endedAt?: string;
+  duration?: number; // in seconds
+  transcript?: string;
+  summary?: string;
+  assistantId: string;
+  recordingUrl?: string;
+  callType: 'appointment_request' | 'intake_call' | 'general_inquiry' | 'crisis';
+  metadata?: {
+    clientName?: string;
+    appointmentType?: 'initial_consultation' | 'follow_up' | 'couples_therapy' | 'family_therapy' | 'psychiatric_eval' | 'urgent_consultation';
+    urgencyLevel?: number; // 1-5 for appointment scheduling
+    schedulingStatus?: 'requested' | 'scheduled' | 'pending_confirmation' | 'completed';
+    preferredDates?: string[];
+    preferredTimes?: string[];
+    keyTopics?: string[];
+    followUpRequired?: boolean;
+    intakeCompleted?: boolean;
+    insuranceVerified?: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AppointmentRequest {
+  id: string;
+  callSessionId: string;
+  clientInfo: {
+    fullName: string;
+    phone: string;
+    email?: string;
+    dateOfBirth?: string;
+    address?: string;
+  };
+  appointmentDetails: {
+    type: 'initial_consultation' | 'follow_up' | 'couples_therapy' | 'family_therapy' | 'psychiatric_eval' | 'urgent_consultation';
+    urgency: number; // 1-5 scale
+    duration: 45 | 60 | 90; // minutes
+    preferredDates: string[];
+    preferredTimes: string[];
+    notes?: string;
+  };
+  intakeInfo?: {
+    reasonForSeeking: string;
+    previousTherapy: boolean;
+    currentMedications?: string;
+    insuranceInfo?: {
+      provider: string;
+      memberId: string;
+      groupNumber?: string;
+    };
+    emergencyContact?: {
+      name: string;
+      relationship: string;
+      phone: string;
+    };
+  };
+  status: 'pending_review' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  scheduledAppointment?: {
+    date: string;
+    time: string;
+    duration: number;
+    location: string;
+    therapistId?: string;
+  };
+  therapistNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VapiTranscriptEntry {
+  id: string;
+  callSessionId: string;
+  speaker: 'user' | 'assistant';
+  text: string;
+  timestamp: string;
+  confidence?: number;
+  duration?: number;
+  emotions?: {
+    sentiment: 'positive' | 'negative' | 'neutral';
+    confidence: number;
+    emotions: string[];
+  };
+}
+
+export interface VapiWebhookEvent {
+  type: 'call-started' | 'call-ended' | 'transcript' | 'function-call' | 'speech-update' | 'hang' | 'tool-calls';
+  callId: string;
+  assistantId: string;
+  timestamp: string;
+  data: any;
+}
+
+export interface TherapistNote {
+  id: string;
+  callSessionId: string;
+  therapistId: string;
+  note: string;
+  actionItems?: string[];
+  followUpDate?: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VapiAssistantConfig {
+  id: string;
+  name: string;
+  firstMessage: string;
+  systemPrompt: string;
+  model: string;
+  voice: {
+    provider: string;
+    voiceId: string;
+  };
+  transcriber: {
+    provider: string;
+    model: string;
+    language: string;
+  };
+  recordingEnabled: boolean;
+  endCallMessage?: string;
+  maxDurationSeconds?: number;
+  silenceTimeoutSeconds?: number;
+  responseDelaySeconds?: number;
+}

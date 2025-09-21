@@ -1,4 +1,4 @@
-import { Patient, Provider, Referral, AuditLog, User } from './types';
+import { Patient, Provider, Referral, AuditLog, User, VapiCallSession, VapiTranscriptEntry, TherapistNote, AppointmentRequest } from './types';
 
 export const dummyPatients: Patient[] = [
   {
@@ -286,4 +286,401 @@ export const getReferralsByPriority = (priority: Referral['priority']): Referral
 
 export const getAvailableProviders = (): Provider[] => {
   return dummyProviders.filter(provider => provider.isAcceptingNewPatients);
+};
+
+// Vapi AI Call Sessions Dummy Data - Appointment Scheduling Focus
+export const dummyVapiCallSessions: VapiCallSession[] = [
+  {
+    id: 'vapi-call-001',
+    callId: 'vapi_12345678-1234-5678-9012-123456789012',
+    clientPhone: '+15551234567',
+    status: 'completed',
+    startedAt: '2024-01-20T14:30:00Z',
+    endedAt: '2024-01-20T14:45:00Z',
+    duration: 900, // 15 minutes
+    transcript: 'Full appointment scheduling conversation transcript...',
+    summary: 'New client called to schedule initial consultation. Completed intake questionnaire and scheduled appointment for next week. Client seeking help with anxiety and work stress.',
+    assistantId: 'asst_appointment_scheduler',
+    recordingUrl: 'https://recordings.vapi.ai/call_12345678',
+    callType: 'appointment_request',
+    metadata: {
+      clientName: 'Sarah Johnson',
+      appointmentType: 'initial_consultation',
+      urgencyLevel: 3,
+      schedulingStatus: 'scheduled',
+      preferredDates: ['2024-01-27', '2024-01-28', '2024-01-29'],
+      preferredTimes: ['10:00 AM', '2:00 PM', '4:00 PM'],
+      keyTopics: ['anxiety', 'work stress', 'initial consultation'],
+      followUpRequired: false,
+      intakeCompleted: true,
+      insuranceVerified: true
+    },
+    createdAt: '2024-01-20T14:30:00Z',
+    updatedAt: '2024-01-20T14:45:00Z'
+  },
+  {
+    id: 'vapi-call-002',
+    callId: 'vapi_87654321-4321-8765-2109-876543210987',
+    clientPhone: '+15552345678',
+    status: 'completed',
+    startedAt: '2024-01-21T10:15:00Z',
+    endedAt: '2024-01-21T10:35:00Z',
+    duration: 1200, // 20 minutes
+    transcript: 'Couples therapy scheduling and intake conversation...',
+    summary: 'Couple called to schedule couples therapy session. Both partners participated in intake. Relationship issues and communication problems discussed. Scheduled for next available slot.',
+    assistantId: 'asst_appointment_scheduler',
+    recordingUrl: 'https://recordings.vapi.ai/call_87654321',
+    callType: 'appointment_request',
+    metadata: {
+      clientName: 'David and Lisa Chen',
+      appointmentType: 'couples_therapy',
+      urgencyLevel: 4,
+      schedulingStatus: 'pending_confirmation',
+      preferredDates: ['2024-01-25', '2024-01-26'],
+      preferredTimes: ['6:00 PM', '7:00 PM'],
+      keyTopics: ['couples therapy', 'communication issues', 'relationship counseling'],
+      followUpRequired: true,
+      intakeCompleted: true,
+      insuranceVerified: false
+    },
+    createdAt: '2024-01-21T10:15:00Z',
+    updatedAt: '2024-01-21T10:35:00Z'
+  },
+  {
+    id: 'vapi-call-003',
+    callId: 'vapi_11223344-5566-7788-9900-112233445566',
+    clientPhone: '+15553456789',
+    status: 'completed',
+    startedAt: '2024-01-21T16:20:00Z',
+    endedAt: '2024-01-21T16:32:00Z',
+    duration: 720, // 12 minutes
+    transcript: 'Urgent consultation request conversation...',
+    summary: 'Existing client called requesting urgent consultation due to recent panic attacks. Prioritized scheduling and offered earlier available slot. Provided interim coping strategies.',
+    assistantId: 'asst_appointment_scheduler',
+    recordingUrl: 'https://recordings.vapi.ai/call_11223344',
+    callType: 'appointment_request',
+    patientId: 'pat-003',
+    metadata: {
+      clientName: 'Maria Rodriguez',
+      appointmentType: 'urgent_consultation',
+      urgencyLevel: 5,
+      schedulingStatus: 'scheduled',
+      preferredDates: ['2024-01-22', '2024-01-23'],
+      preferredTimes: ['as soon as possible'],
+      keyTopics: ['panic attacks', 'urgent consultation', 'existing client'],
+      followUpRequired: false,
+      intakeCompleted: false, // existing client
+      insuranceVerified: true
+    },
+    createdAt: '2024-01-21T16:20:00Z',
+    updatedAt: '2024-01-21T16:32:00Z'
+  },
+  {
+    id: 'vapi-call-004',
+    callId: 'vapi_55667788-9900-1122-3344-556677889900',
+    clientPhone: '+15554567890',
+    status: 'completed',
+    startedAt: '2024-01-22T09:30:00Z',
+    endedAt: '2024-01-22T09:42:00Z',
+    duration: 720, // 12 minutes
+    transcript: 'General inquiry about services and availability...',
+    summary: 'Potential client called asking about therapy services, insurance coverage, and availability. Provided information about services offered and scheduling process. Did not schedule appointment yet.',
+    assistantId: 'asst_appointment_scheduler',
+    recordingUrl: 'https://recordings.vapi.ai/call_55667788',
+    callType: 'general_inquiry',
+    metadata: {
+      clientName: 'Michael Thompson',
+      urgencyLevel: 2,
+      schedulingStatus: 'requested',
+      keyTopics: ['service inquiry', 'insurance questions', 'availability'],
+      followUpRequired: true,
+      intakeCompleted: false,
+      insuranceVerified: false
+    },
+    createdAt: '2024-01-22T09:30:00Z',
+    updatedAt: '2024-01-22T09:42:00Z'
+  }
+];
+
+export const dummyVapiTranscripts: VapiTranscriptEntry[] = [
+  {
+    id: 'transcript-001-1',
+    callSessionId: 'vapi-call-001',
+    speaker: 'assistant',
+    text: 'Hello, thank you for calling Lighthouse Psychology. I\'m the scheduling assistant. Dr. Martinez is currently with a client, but I\'m here to help you schedule an appointment. How can I assist you today?',
+    timestamp: '2024-01-20T14:30:05Z',
+    confidence: 0.98
+  },
+  {
+    id: 'transcript-001-2',
+    callSessionId: 'vapi-call-001',
+    speaker: 'user',
+    text: 'Hi, I\'d like to schedule an appointment. I\'ve been dealing with a lot of anxiety lately, especially at work, and I think I need to talk to someone.',
+    timestamp: '2024-01-20T14:30:12Z',
+    confidence: 0.95,
+    emotions: {
+      sentiment: 'neutral',
+      confidence: 0.87,
+      emotions: ['concern', 'hope']
+    }
+  },
+  {
+    id: 'transcript-001-3',
+    callSessionId: 'vapi-call-001',
+    speaker: 'assistant',
+    text: 'I\'m glad you\'re reaching out for support. That takes courage. I can definitely help you schedule an appointment with Dr. Martinez. Since this would be your first visit, we\'ll want to schedule an initial consultation. Can I get your full name and phone number first?',
+    timestamp: '2024-01-20T14:30:18Z',
+    confidence: 0.99
+  },
+  {
+    id: 'transcript-001-4',
+    callSessionId: 'vapi-call-001',
+    speaker: 'user',
+    text: 'Sure, it\'s Sarah Johnson, and my phone number is 555-123-4567.',
+    timestamp: '2024-01-20T14:30:25Z',
+    confidence: 0.97
+  },
+  {
+    id: 'transcript-001-5',
+    callSessionId: 'vapi-call-001',
+    speaker: 'assistant',
+    text: 'Thank you, Sarah. Now, to help Dr. Martinez prepare for your session, can you tell me a bit more about what\'s been going on? You mentioned anxiety at work - how long has this been affecting you?',
+    timestamp: '2024-01-20T14:30:30Z',
+    confidence: 0.98
+  },
+  {
+    id: 'transcript-002-1',
+    callSessionId: 'vapi-call-002',
+    speaker: 'assistant',
+    text: 'Hello, thank you for calling Lighthouse Psychology. I\'m the scheduling assistant. How can I help you today?',
+    timestamp: '2024-01-21T10:15:05Z',
+    confidence: 0.98
+  },
+  {
+    id: 'transcript-002-2',
+    callSessionId: 'vapi-call-002',
+    speaker: 'user',
+    text: 'Hi, my wife and I would like to schedule couples therapy. We\'ve been having some communication issues and we want to work on them before they get worse.',
+    timestamp: '2024-01-21T10:15:15Z',
+    confidence: 0.93,
+    emotions: {
+      sentiment: 'neutral',
+      confidence: 0.85,
+      emotions: ['concern', 'determination']
+    }
+  },
+  {
+    id: 'transcript-002-3',
+    callSessionId: 'vapi-call-002',
+    speaker: 'assistant',
+    text: 'That\'s wonderful that you\'re both committed to working on your relationship together. I can help you schedule a couples therapy session with Dr. Martinez. Can I get both of your names and a contact number?',
+    timestamp: '2024-01-21T10:15:22Z',
+    confidence: 0.99
+  },
+  {
+    id: 'transcript-003-1',
+    callSessionId: 'vapi-call-003',
+    speaker: 'assistant',
+    text: 'Hello, thank you for calling Lighthouse Psychology. How can I assist you today?',
+    timestamp: '2024-01-21T16:20:05Z',
+    confidence: 0.98
+  },
+  {
+    id: 'transcript-003-2',
+    callSessionId: 'vapi-call-003',
+    speaker: 'user',
+    text: 'Hi, this is Maria Rodriguez. I\'m an existing patient of Dr. Martinez, and I need to schedule an urgent appointment. I\'ve been having panic attacks almost daily this week.',
+    timestamp: '2024-01-21T16:20:12Z',
+    confidence: 0.94,
+    emotions: {
+      sentiment: 'negative',
+      confidence: 0.90,
+      emotions: ['anxiety', 'urgency', 'distress']
+    }
+  },
+  {
+    id: 'transcript-003-3',
+    callSessionId: 'vapi-call-003',
+    speaker: 'assistant',
+    text: 'I\'m sorry to hear you\'re experiencing increased panic attacks, Maria. Let me check Dr. Martinez\'s schedule to see what urgent appointments we have available. Are you safe right now and able to wait for an appointment, or do you need immediate crisis support?',
+    timestamp: '2024-01-21T16:20:18Z',
+    confidence: 0.97
+  }
+];
+
+// Appointment Requests from AI Calls
+export const dummyAppointmentRequests: AppointmentRequest[] = [
+  {
+    id: 'appt-req-001',
+    callSessionId: 'vapi-call-001',
+    clientInfo: {
+      fullName: 'Sarah Johnson',
+      phone: '+15551234567',
+      email: 'sarah.johnson@email.com',
+      dateOfBirth: '1985-03-15'
+    },
+    appointmentDetails: {
+      type: 'initial_consultation',
+      urgency: 3,
+      duration: 60,
+      preferredDates: ['2024-01-27', '2024-01-28', '2024-01-29'],
+      preferredTimes: ['10:00 AM', '2:00 PM', '4:00 PM'],
+      notes: 'Client experiencing work-related anxiety, first time seeking therapy'
+    },
+    intakeInfo: {
+      reasonForSeeking: 'Work-related anxiety and stress management',
+      previousTherapy: false,
+      currentMedications: 'None',
+      insuranceInfo: {
+        provider: 'Blue Cross Blue Shield',
+        memberId: 'BCBS123456789'
+      }
+    },
+    status: 'scheduled',
+    scheduledAppointment: {
+      date: '2024-01-27',
+      time: '10:00 AM',
+      duration: 60,
+      location: 'Office - Room 1',
+      therapistId: 'prov-001'
+    },
+    createdAt: '2024-01-20T14:45:00Z',
+    updatedAt: '2024-01-20T15:00:00Z'
+  },
+  {
+    id: 'appt-req-002',
+    callSessionId: 'vapi-call-002',
+    clientInfo: {
+      fullName: 'David and Lisa Chen',
+      phone: '+15552345678',
+      email: 'david.chen@email.com'
+    },
+    appointmentDetails: {
+      type: 'couples_therapy',
+      urgency: 4,
+      duration: 90,
+      preferredDates: ['2024-01-25', '2024-01-26'],
+      preferredTimes: ['6:00 PM', '7:00 PM'],
+      notes: 'Couple seeking help with communication issues'
+    },
+    intakeInfo: {
+      reasonForSeeking: 'Communication problems and relationship conflicts',
+      previousTherapy: false,
+      insuranceInfo: {
+        provider: 'Aetna',
+        memberId: 'AETNA987654321'
+      }
+    },
+    status: 'pending_review',
+    therapistNotes: 'Need to verify insurance coverage for couples therapy sessions',
+    createdAt: '2024-01-21T10:35:00Z',
+    updatedAt: '2024-01-21T11:15:00Z'
+  },
+  {
+    id: 'appt-req-003',
+    callSessionId: 'vapi-call-003',
+    clientInfo: {
+      fullName: 'Maria Rodriguez',
+      phone: '+15553456789',
+      email: 'maria.rodriguez@email.com'
+    },
+    appointmentDetails: {
+      type: 'urgent_consultation',
+      urgency: 5,
+      duration: 60,
+      preferredDates: ['2024-01-22', '2024-01-23'],
+      preferredTimes: ['as soon as possible'],
+      notes: 'Existing client experiencing increased panic attacks'
+    },
+    status: 'confirmed',
+    scheduledAppointment: {
+      date: '2024-01-22',
+      time: '2:00 PM',
+      duration: 60,
+      location: 'Office - Room 1',
+      therapistId: 'prov-001'
+    },
+    therapistNotes: 'Priority client - increased anxiety symptoms, may need medication review',
+    createdAt: '2024-01-21T16:32:00Z',
+    updatedAt: '2024-01-21T17:00:00Z'
+  }
+];
+
+export const dummyTherapistNotes: TherapistNote[] = [
+  {
+    id: 'note-001',
+    callSessionId: 'vapi-call-001',
+    therapistId: 'prov-001',
+    note: 'New client intake completed successfully by AI assistant. Client reports work-related anxiety, no previous therapy experience. Good candidate for CBT approach. Scheduled for initial consultation.',
+    actionItems: [
+      'Review intake information before appointment',
+      'Prepare CBT materials for anxiety management',
+      'Verify insurance coverage'
+    ],
+    followUpDate: '2024-01-27T10:00:00Z',
+    priority: 'medium',
+    tags: ['new client', 'work anxiety', 'CBT', 'initial consultation'],
+    createdAt: '2024-01-20T15:30:00Z',
+    updatedAt: '2024-01-20T15:30:00Z'
+  },
+  {
+    id: 'note-002',
+    callSessionId: 'vapi-call-002',
+    therapistId: 'prov-001',
+    note: 'Couples therapy request - both partners motivated for treatment. Need to verify insurance coverage for couples sessions. AI assistant handled intake professionally.',
+    actionItems: [
+      'Contact insurance to verify couples therapy coverage',
+      'Send intake paperwork to both partners',
+      'Schedule appointment once insurance confirmed'
+    ],
+    followUpDate: '2024-01-22T09:00:00Z',
+    priority: 'medium',
+    tags: ['couples therapy', 'insurance verification', 'intake completed'],
+    createdAt: '2024-01-21T11:00:00Z',
+    updatedAt: '2024-01-21T11:00:00Z'
+  },
+  {
+    id: 'note-003',
+    callSessionId: 'vapi-call-003',
+    therapistId: 'prov-001',
+    note: 'Existing client Maria - increased panic attacks this week. Scheduled urgent appointment. May need medication consultation with psychiatrist. AI appropriately prioritized this call.',
+    actionItems: [
+      'Review previous treatment notes',
+      'Assess current coping strategies',
+      'Consider psychiatric referral for medication evaluation',
+      'Safety assessment during appointment'
+    ],
+    followUpDate: '2024-01-22T14:00:00Z',
+    priority: 'high',
+    tags: ['existing client', 'panic attacks', 'urgent', 'medication review'],
+    createdAt: '2024-01-21T17:00:00Z',
+    updatedAt: '2024-01-21T17:00:00Z'
+  }
+];
+
+// Utility functions for Vapi data
+export const findVapiCallSessionById = (id: string): VapiCallSession | undefined => {
+  return dummyVapiCallSessions.find(session => session.id === id);
+};
+
+export const getVapiCallSessionsByPatient = (patientId: string): VapiCallSession[] => {
+  return dummyVapiCallSessions.filter(session => session.patientId === patientId);
+};
+
+export const getVapiCallSessionsByStatus = (status: VapiCallSession['status']): VapiCallSession[] => {
+  return dummyVapiCallSessions.filter(session => session.status === status);
+};
+
+export const getTranscriptsByCallSession = (callSessionId: string): VapiTranscriptEntry[] => {
+  return dummyVapiTranscripts.filter(entry => entry.callSessionId === callSessionId);
+};
+
+export const getTherapistNotesByCallSession = (callSessionId: string): TherapistNote[] => {
+  return dummyTherapistNotes.filter(note => note.callSessionId === callSessionId);
+};
+
+export const getRecentVapiCallSessions = (limit: number = 10): VapiCallSession[] => {
+  return dummyVapiCallSessions
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, limit);
 };

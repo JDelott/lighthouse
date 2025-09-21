@@ -2,11 +2,21 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { dummyReferrals, dummyPatients, dummyProviders, getReferralsByStatus } from '@/lib/dummy-data';
-import { Referral } from '@/lib/types';
+import { 
+  dummyReferrals, 
+  dummyPatients, 
+  dummyProviders, 
+  getReferralsByStatus,
+  dummyVapiCallSessions,
+  getVapiCallSessionsByStatus,
+  getRecentVapiCallSessions 
+} from '@/lib/dummy-data';
+import { Referral, VapiCallSession } from '@/lib/types';
+import CallSessionCard from '../components/CallSessionCard';
 
 export default function DashboardPage() {
   const [selectedStatus, setSelectedStatus] = useState<'all' | Referral['status']>('all');
+  const [activeTab, setActiveTab] = useState<'referrals' | 'calls'>('referrals');
   
   const statusCounts = {
     all: dummyReferrals.length,
@@ -18,9 +28,20 @@ export default function DashboardPage() {
     cancelled: getReferralsByStatus('cancelled').length,
   };
 
+  const callSessionCounts = {
+    total: dummyVapiCallSessions.length,
+    completed: getVapiCallSessionsByStatus('completed').length,
+    inProgress: getVapiCallSessionsByStatus('in-progress').length,
+    appointmentRequests: dummyVapiCallSessions.filter(session => session.callType === 'appointment_request').length,
+    pendingScheduling: dummyVapiCallSessions.filter(session => session.metadata?.schedulingStatus === 'pending_confirmation').length,
+    urgentRequests: dummyVapiCallSessions.filter(session => session.metadata?.urgencyLevel && session.metadata.urgencyLevel >= 4).length,
+  };
+
   const filteredReferrals = selectedStatus === 'all' 
     ? dummyReferrals 
     : getReferralsByStatus(selectedStatus);
+
+  const recentCallSessions = getRecentVapiCallSessions(5);
 
   const getStatusColor = (status: Referral['status']) => {
     switch (status) {
@@ -115,13 +136,15 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">{statusCounts.pending}</span>
+                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h6a2 2 0 012 2v4m-6 9l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts.pending}</p>
+                <p className="text-sm font-medium text-gray-600">Appointment Requests</p>
+                <p className="text-2xl font-bold text-gray-900">{callSessionCounts.appointmentRequests}</p>
               </div>
             </div>
           </div>
@@ -129,13 +152,13 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">{statusCounts.scheduled}</span>
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">{callSessionCounts.pendingScheduling}</span>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Scheduled</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts.scheduled}</p>
+                <p className="text-sm font-medium text-gray-600">Pending Scheduling</p>
+                <p className="text-2xl font-bold text-gray-900">{callSessionCounts.pendingScheduling}</p>
               </div>
             </div>
           </div>
@@ -143,23 +166,50 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">{statusCounts.completed}</span>
+                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">{callSessionCounts.urgentRequests}</span>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts.completed}</p>
+                <p className="text-sm font-medium text-gray-600">Urgent Requests</p>
+                <p className="text-2xl font-bold text-gray-900">{callSessionCounts.urgentRequests}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Referrals Table */}
+        {/* Tab Navigation */}
         <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium text-gray-900">Mental Health Referrals</h2>
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-8 px-6" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('referrals')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'referrals'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Mental Health Referrals ({statusCounts.all})
+              </button>
+              <button
+                onClick={() => setActiveTab('calls')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'calls'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                AI Call Sessions ({callSessionCounts.total})
+              </button>
+            </nav>
+          </div>
+
+          {activeTab === 'referrals' ? (
+            <>
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-medium text-gray-900">Mental Health Referrals</h2>
               <div className="flex space-x-2">
                 {Object.entries(statusCounts).map(([status, count]) => (
                   <button
@@ -279,6 +329,53 @@ export default function DashboardPage() {
                 No referrals found for the selected status.
               </div>
             </div>
+          )}
+            </>
+          ) : (
+            <>
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-medium text-gray-900">AI Appointment Scheduling Calls</h2>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center text-sm text-gray-500">
+                      <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                      Appointment Requests: {callSessionCounts.appointmentRequests}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-500">
+                      <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                      Pending Scheduling: {callSessionCounts.pendingScheduling}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-500">
+                      <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                      Urgent: {callSessionCounts.urgentRequests}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {recentCallSessions.length > 0 ? (
+                  <div className="grid gap-6">
+                    {recentCallSessions.map((callSession) => (
+                      <CallSessionCard 
+                        key={callSession.id} 
+                        callSession={callSession}
+                        showPatientInfo={true}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    <div className="text-gray-500">
+                      No appointment scheduling calls yet. Clients can call (555) 123-4567 to schedule appointments with the AI assistant.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </main>
