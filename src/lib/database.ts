@@ -22,6 +22,9 @@ pool.on('error', (err) => {
   console.error('❌ PostgreSQL connection error:', err);
 });
 
+// Export the pool for use in other files
+export { pool };
+
 // Call Sessions
 export async function saveCallSession(session: VapiCallSession): Promise<void> {
   const client = await pool.connect();

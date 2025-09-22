@@ -90,10 +90,60 @@ export interface User {
   email: string;
   name: string;
   role: 'admin' | 'coordinator' | 'provider' | 'viewer';
+  organizationId: string;
   isActive: boolean;
-  lastLogin?: string;
+  lastLoginAt?: string;
+  emailVerifiedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  planType: 'trial' | 'starter' | 'professional' | 'enterprise';
+  phoneNumber?: string;
+  address?: string;
+  website?: string;
+  vapiAssistantId?: string;
+  vapiPhoneNumber?: string;
+  settings: Record<string, any>;
+  isActive: boolean;
+  trialEndsAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Subscription {
+  id: string;
+  organizationId: string;
+  planType: 'starter' | 'professional' | 'enterprise';
+  status: 'active' | 'canceled' | 'past_due' | 'trialing';
+  stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UsageTracking {
+  id: string;
+  organizationId: string;
+  monthYear: string; // YYYY-MM format
+  callsCount: number;
+  minutesUsed: number;
+  transcriptionMinutes: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlanLimits {
+  maxCallsPerMonth: number;
+  overageRate: number; // cost per additional call
+  features: string[];
+  supportLevel: 'email' | 'chat' | 'priority' | 'dedicated';
 }
 
 export type ReferralFormData = {

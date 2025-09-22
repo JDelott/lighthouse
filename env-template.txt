@@ -1,0 +1,37 @@
+# Copy this to .env.local for your environment variables
+
+# NextAuth Configuration
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key-here-generate-with-openssl-rand-base64-32
+
+# Google OAuth (optional - for Google sign-in)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Database Configuration
+DB_USER=your-db-user
+DB_HOST=localhost
+DB_NAME=lighthouse_db
+DB_PASSWORD=your-db-password
+DB_PORT=5432
+
+# Vapi AI Configuration
+VAPI_API_KEY=your_vapi_api_key_here
+VAPI_PHONE_NUMBER=+15551234567
+VAPI_WEBHOOK_URL=https://your-domain.com/api/vapi/webhook
+VAPI_WEBHOOK_SECRET=your_webhook_secret_here
+NEXT_PUBLIC_VAPI_PUBLIC_KEY=your_vapi_public_key
+NEXT_PUBLIC_VAPI_PHONE_NUMBER=(555) 123-4567
+NEXT_PUBLIC_VAPI_ASSISTANT_ID=your_assistant_id
+
+# AI Configuration
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Stripe Configuration (for billing - optional)
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+STRIPE_WEBHOOK_SECRET=whsec_your_stripe_webhook_secret
+
+# Application Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+APP_ENV=development
