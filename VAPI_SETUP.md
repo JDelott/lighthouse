@@ -39,6 +39,9 @@ DATABASE_URL=postgresql://username:password@localhost:5432/lighthouse
 # Application Configuration
 APP_ENV=development
 APP_URL=http://localhost:3000
+
+# AI Configuration
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 ```
 
 ## Vapi Assistant Configuration

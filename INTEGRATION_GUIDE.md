@@ -14,6 +14,9 @@ VAPI_WEBHOOK_SECRET=your_webhook_secret_here
 
 # Application Configuration  
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# AI Configuration
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 ```
 
 ## Step 2: Vapi Dashboard Configuration

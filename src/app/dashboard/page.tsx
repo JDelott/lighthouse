@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 // Removed dummy data imports - using real data only
 import { getAllCallSessions } from '@/lib/call-processor';
-import { Referral, VapiCallSession } from '@/lib/types';
+import { Referral, VapiCallSession, AppointmentRequest, TherapistNote } from '@/lib/types';
 import CallSessionCard from '../components/CallSessionCard';
 import VapiTestButton from '../components/VapiTestButton';
 import { config, formatPhoneForDisplay } from '@/lib/config';
@@ -12,6 +12,11 @@ import { config, formatPhoneForDisplay } from '@/lib/config';
 export default function DashboardPage() {
   const [selectedStatus, setSelectedStatus] = useState<'all' | Referral['status']>('all');
   const [activeTab, setActiveTab] = useState<'referrals' | 'calls'>('referrals');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiCallSessions, setApiCallSessions] = useState<VapiCallSession[]>([]);
+  const [apiAppointmentRequests, setApiAppointmentRequests] = useState<AppointmentRequest[]>([]);
+  const [lastSync, setLastSync] = useState<string | null>(null);
   
   // Remove dummy referrals - this will be replaced with real referral system later
   const statusCounts = {
@@ -24,8 +29,43 @@ export default function DashboardPage() {
     cancelled: 0,
   };
 
-  // Get real call sessions only (no dummy data fallback)
-  const allCallSessions = getAllCallSessions();
+  // Get real call sessions (fallback to in-memory, prefer API data)
+  const memoryCallSessions = getAllCallSessions();
+  const allCallSessions = apiCallSessions.length > 0 ? apiCallSessions : memoryCallSessions;
+  
+  // Sync calls from Vapi API
+  const syncCallsFromAPI = async () => {
+    setIsLoading(true);
+    try {
+      console.log('🔄 Syncing calls from Vapi API...');
+      const response = await fetch('/api/sync-calls');
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Synced calls:', result.data);
+        setApiCallSessions(result.data.calls || []);
+        setApiAppointmentRequests(result.data.appointments || []);
+        setLastSync(new Date().toISOString());
+      } else {
+        console.error('❌ Failed to sync calls:', result.error);
+      }
+    } catch (error) {
+      console.error('❌ Error syncing calls:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleRefresh = () => {
+    console.log('🔄 Refreshing dashboard data...');
+    setRefreshKey(prev => prev + 1);
+    syncCallsFromAPI();
+  };
+  
+  // Auto-sync on component mount
+  useEffect(() => {
+    syncCallsFromAPI();
+  }, []);
   
   const callSessionCounts = {
     total: allCallSessions.length,
@@ -41,6 +81,14 @@ export default function DashboardPage() {
 
   // Show recent real call sessions only
   const recentCallSessions = allCallSessions.slice(0, 5);
+  
+  // Debug logging
+  console.log('📊 Dashboard Debug:', {
+    totalCallSessions: allCallSessions.length,
+    recentCallSessions: recentCallSessions.length,
+    callSessionCounts,
+    refreshKey
+  });
 
   const getStatusColor = (status: Referral['status']) => {
     switch (status) {
@@ -90,9 +138,31 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2"
+              >
+                {isLoading ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+                <span>{isLoading ? 'Syncing...' : 'Sync from Vapi'}</span>
+              </button>
+              {lastSync && (
+                <div className="text-xs text-gray-500">
+                  Last sync: {new Date(lastSync).toLocaleTimeString()}
+                </div>
+              )}
               <Link
                 href="/referrals/new"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 New Referral
               </Link>

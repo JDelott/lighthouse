@@ -9,15 +9,24 @@ export const realTherapistNotes: TherapistNote[] = [];
 // AI-powered call summarization using Anthropic Claude
 export async function summarizeCallForTherapist(transcript: string, callMetadata: any): Promise<string> {
   try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    
+    if (!apiKey) {
+      console.error('❌ ANTHROPIC_API_KEY environment variable is not set');
+      return 'Unable to generate summary - API key not configured';
+    }
+    
+    console.log('🤖 Calling Anthropic API for call summarization...');
+    
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'x-api-key': apiKey,
         'Content-Type': 'application/json',
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 500,
         temperature: 0.3,
         system: `You are a clinical assistant helping therapists review AI-assisted appointment scheduling calls. 
@@ -44,10 +53,18 @@ export async function summarizeCallForTherapist(transcript: string, callMetadata
     });
 
     if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('❌ Anthropic API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      throw new Error(`Anthropic API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('✅ Successfully generated call summary via Anthropic API');
     return data.content[0]?.text || 'Summary generation failed';
     
   } catch (error) {
@@ -59,15 +76,24 @@ export async function summarizeCallForTherapist(transcript: string, callMetadata
 // Extract structured appointment data from transcript using Anthropic Claude
 export async function parseAppointmentDetails(transcript: string): Promise<Partial<AppointmentRequest>> {
   try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    
+    if (!apiKey) {
+      console.error('❌ ANTHROPIC_API_KEY environment variable is not set');
+      return {};
+    }
+    
+    console.log('🤖 Calling Anthropic API for appointment data extraction...');
+    
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'x-api-key': apiKey,
         'Content-Type': 'application/json',
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 800,
         temperature: 0.1,
         system: `You are a data extraction assistant. Extract structured appointment information from therapy scheduling call transcripts.
@@ -109,7 +135,14 @@ export async function parseAppointmentDetails(transcript: string): Promise<Parti
     });
 
     if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('❌ Anthropic API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      throw new Error(`Anthropic API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -117,9 +150,34 @@ export async function parseAppointmentDetails(transcript: string): Promise<Parti
     
     if (content) {
       try {
-        return JSON.parse(content);
+        console.log('✅ Successfully extracted appointment details via Anthropic API');
+        
+        // Extract JSON from the response (handle cases where there's explanatory text after JSON)
+        let jsonContent = content.trim();
+        
+        // Find the first { and last } to extract just the JSON part
+        const firstBrace = jsonContent.indexOf('{');
+        const lastBrace = jsonContent.lastIndexOf('}');
+        
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          jsonContent = jsonContent.substring(firstBrace, lastBrace + 1);
+        }
+        
+        return JSON.parse(jsonContent);
       } catch (parseError) {
-        console.error('Error parsing appointment details JSON:', parseError);
+        console.error('❌ Error parsing appointment details JSON:', parseError);
+        console.error('Raw content:', content);
+        
+        // Try to extract JSON manually as fallback
+        try {
+          const match = content.match(/\{[\s\S]*\}/);
+          if (match) {
+            return JSON.parse(match[0]);
+          }
+        } catch (fallbackError) {
+          console.error('❌ Fallback JSON extraction also failed:', fallbackError);
+        }
+        
         return {};
       }
     }
@@ -265,6 +323,66 @@ function extractTags(callSession: VapiCallSession): string[] {
   tags.push('ai-processed');
   
   return tags;
+}
+
+// Test function to verify Anthropic API key is working
+export async function testAnthropicAPI(): Promise<{ success: boolean; message: string; error?: any }> {
+  try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    
+    if (!apiKey) {
+      return {
+        success: false,
+        message: 'ANTHROPIC_API_KEY environment variable is not set'
+      };
+    }
+    
+    console.log('🧪 Testing Anthropic API connection...');
+    
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 50,
+        temperature: 0.1,
+        messages: [
+          {
+            role: 'user',
+            content: 'Hello, please respond with "API test successful" if you can read this message.'
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        success: false,
+        message: `Anthropic API error: ${response.status} ${response.statusText}`,
+        error: errorText
+      };
+    }
+
+    const data = await response.json();
+    const responseText = data.content[0]?.text || '';
+    
+    return {
+      success: true,
+      message: `Anthropic API is working! Response: "${responseText}"`
+    };
+    
+  } catch (error) {
+    return {
+      success: false,
+      message: 'Error testing Anthropic API',
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
 }
 
 // Utility functions to replace dummy data access

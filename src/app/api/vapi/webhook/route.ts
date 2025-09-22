@@ -95,7 +95,8 @@ async function handleCallStarted(event: VapiWebhookEvent) {
   // Store in real call sessions (replaces dummy data)
   realCallSessions.push(newCallSession);
   
-  console.log('Real call started:', newCallSession.id, 'Phone:', newCallSession.clientPhone);
+  console.log('✅ Real call started:', newCallSession.id, 'Phone:', newCallSession.clientPhone);
+  console.log('📊 Total call sessions now:', realCallSessions.length);
 }
 
 async function handleCallEnded(event: VapiWebhookEvent) {
@@ -125,12 +126,19 @@ async function handleCallEnded(event: VapiWebhookEvent) {
       };
     }
     
-    console.log('Real call ended:', callSession.id, 'Duration:', callSession.duration, 'seconds');
+    console.log('✅ Real call ended:', callSession.id, 'Duration:', callSession.duration, 'seconds');
+    console.log('📊 Call session data:', {
+      id: callSession.id,
+      status: callSession.status,
+      transcript: callSession.transcript ? 'Present' : 'Missing',
+      summary: callSession.summary ? 'Present' : 'Missing'
+    });
     
     // Process completed call with AI summarization and data extraction
     if (callSession.status === 'completed') {
-      console.log('Processing completed call with AI...');
+      console.log('🤖 Processing completed call with AI...');
       await processCompletedCall(callSession);
+      console.log('✅ Completed AI processing for call:', callSession.id);
     }
     
     // Check if immediate therapist notification is needed
@@ -172,7 +180,8 @@ async function handleTranscript(event: VapiWebhookEvent) {
     // Store transcript entry in real data
     realTranscripts.push(transcriptEntry);
     
-    console.log('Real transcript received for call:', callSession.id);
+    console.log('✅ Real transcript received for call:', callSession.id);
+    console.log('📊 Total transcripts now:', realTranscripts.length);
   }
 }
 
@@ -207,7 +216,7 @@ async function handleFunctionCall(event: VapiWebhookEvent) {
 async function handleScheduleAppointment(callId: string, parameters: unknown) {
   console.log('Scheduling appointment for call:', callId, parameters);
   
-  const callSession = dummyVapiCallSessions.find(session => session.callId === callId);
+  const callSession = realCallSessions.find(session => session.callId === callId);
   if (callSession && callSession.metadata && typeof parameters === 'object' && parameters !== null) {
     const params = parameters as Record<string, unknown>;
     // Update call session with appointment details
@@ -231,7 +240,7 @@ async function handleScheduleAppointment(callId: string, parameters: unknown) {
 async function handleCollectIntakeInfo(callId: string, parameters: unknown) {
   console.log('Collecting intake info for call:', callId, parameters);
   
-  const callSession = dummyVapiCallSessions.find(session => session.callId === callId);
+  const callSession = realCallSessions.find(session => session.callId === callId);
   if (callSession && callSession.metadata && typeof parameters === 'object' && parameters !== null) {
     const params = parameters as Record<string, any>;
     // Update call session with client info
@@ -252,7 +261,7 @@ async function handleCollectIntakeInfo(callId: string, parameters: unknown) {
 async function handleSendConfirmation(callId: string, parameters: unknown) {
   console.log('Sending confirmation for call:', callId, parameters);
   
-  const callSession = dummyVapiCallSessions.find(session => session.callId === callId);
+  const callSession = realCallSessions.find(session => session.callId === callId);
   if (callSession && callSession.metadata) {
     callSession.metadata.schedulingStatus = 'scheduled';
   }
