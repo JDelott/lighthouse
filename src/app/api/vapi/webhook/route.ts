@@ -6,6 +6,8 @@ import {
   realTranscripts, 
   processCompletedCall 
 } from '@/lib/call-processor';
+import { saveCallSession, saveTranscript } from '@/lib/database';
+import { fetchVapiCalls, convertVapiCallToSession, fetchAndProcessCalls } from '@/lib/vapi-api';
 
 // In a real implementation, you would verify the webhook signature
 function verifyVapiWebhook(_request: NextRequest): boolean {
@@ -92,8 +94,9 @@ async function handleCallStarted(event: VapiWebhookEvent) {
     updatedAt: event.timestamp
   };
 
-  // Store in real call sessions (replaces dummy data)
+  // Store in real call sessions and database
   realCallSessions.push(newCallSession);
+  await saveCallSession(newCallSession);
   
   console.log('✅ Real call started:', newCallSession.id, 'Phone:', newCallSession.clientPhone);
   console.log('📊 Total call sessions now:', realCallSessions.length);
@@ -101,52 +104,50 @@ async function handleCallStarted(event: VapiWebhookEvent) {
 
 async function handleCallEnded(event: VapiWebhookEvent) {
   const callData = event.data;
+  console.log('🔔 Call ended webhook received for:', event.callId);
   
-  // Find existing call session in real data
-  const callSession = realCallSessions.find(session => session.callId === event.callId);
-  
-  if (callSession) {
-    // Update call session with end data
-    callSession.status = callData.endedReason === 'customer-ended-call' ? 'completed' : 'failed';
-    callSession.endedAt = event.timestamp;
-    callSession.duration = callData.duration;
-    callSession.transcript = callData.transcript;
-    callSession.summary = callData.summary; // Will be replaced by AI summary
-    callSession.recordingUrl = callData.recordingUrl;
-    callSession.updatedAt = event.timestamp;
+  try {
+    // Instead of trying to find existing session, fetch the complete call data from Vapi API
+    console.log('🔄 Fetching complete call data from Vapi API...');
+    const vapiCalls = await fetchVapiCalls();
+    const completedCall = vapiCalls.find(call => call.id === event.callId);
     
-    // Extract metadata from call analysis
-    if (callData.analysis) {
-      callSession.metadata = {
-        emotionalState: callData.analysis.sentiment || 'neutral',
-        urgencyLevel: callData.analysis.urgency || 3,
-        keyTopics: callData.analysis.topics || [],
-        followUpRequired: callData.analysis.followUpNeeded || false,
-        referralNeeded: callData.analysis.referralRecommended || false
-      };
+    if (completedCall) {
+      console.log('✅ Found call in Vapi API:', completedCall.id);
+      
+      // Convert to our format
+      const callSession = convertVapiCallToSession(completedCall);
+      
+      // Check if we already have this call to avoid duplicates
+      const existingIndex = realCallSessions.findIndex(session => session.callId === event.callId);
+      
+      if (existingIndex >= 0) {
+        // Update existing call
+        realCallSessions[existingIndex] = callSession;
+        console.log('📝 Updated existing call session:', callSession.id);
+      } else {
+        // Add new call
+        realCallSessions.push(callSession);
+        console.log('➕ Added new call session:', callSession.id);
+      }
+      
+      // Save to database
+      await saveCallSession(callSession);
+      
+      // Process completed call with AI if it has a transcript
+      if (callSession.status === 'completed' && callSession.transcript) {
+        console.log('🤖 Processing completed call with AI...');
+        await processCompletedCall(callSession);
+        console.log('✅ Completed AI processing for call:', callSession.id);
+      }
+      
+      console.log('📊 Total call sessions now:', realCallSessions.length);
+    } else {
+      console.error('❌ Call not found in Vapi API:', event.callId);
     }
     
-    console.log('✅ Real call ended:', callSession.id, 'Duration:', callSession.duration, 'seconds');
-    console.log('📊 Call session data:', {
-      id: callSession.id,
-      status: callSession.status,
-      transcript: callSession.transcript ? 'Present' : 'Missing',
-      summary: callSession.summary ? 'Present' : 'Missing'
-    });
-    
-    // Process completed call with AI summarization and data extraction
-    if (callSession.status === 'completed') {
-      console.log('🤖 Processing completed call with AI...');
-      await processCompletedCall(callSession);
-      console.log('✅ Completed AI processing for call:', callSession.id);
-    }
-    
-    // Check if immediate therapist notification is needed
-    if (callSession.metadata?.urgencyLevel && callSession.metadata.urgencyLevel > 7) {
-      await notifyTherapistUrgent(callSession);
-    }
-  } else {
-    console.error('Call session not found for callId:', event.callId);
+  } catch (error) {
+    console.error('❌ Error processing call ended webhook:', error);
   }
 }
 
@@ -176,9 +177,9 @@ async function handleTranscript(event: VapiWebhookEvent) {
       };
     }
     
-    // In a real app, save to database
-    // Store transcript entry in real data
+    // Store transcript entry in real data and save to database
     realTranscripts.push(transcriptEntry);
+    await saveTranscript(transcriptEntry);
     
     console.log('✅ Real transcript received for call:', callSession.id);
     console.log('📊 Total transcripts now:', realTranscripts.length);

@@ -7,9 +7,32 @@ export async function GET(request: NextRequest) {
     
     const result = await fetchAndProcessCalls();
     
+    // Save to database
+    if (typeof window === 'undefined') {
+      console.log('💾 Saving to database...');
+      const { saveCallSession, saveAppointmentRequest, saveTherapistNote } = await import('@/lib/database');
+      
+      // Save all call sessions
+      for (const callSession of result.callSessions) {
+        await saveCallSession(callSession);
+      }
+      
+      // Save all appointment requests
+      for (const appointmentRequest of result.appointmentRequests) {
+        await saveAppointmentRequest(appointmentRequest);
+      }
+      
+      // Save all therapist notes
+      for (const therapistNote of result.therapistNotes) {
+        await saveTherapistNote(therapistNote);
+      }
+      
+      console.log('✅ All data saved to database!');
+    }
+    
     return NextResponse.json({
       success: true,
-      message: 'Calls synced successfully from Vapi API',
+      message: 'Calls synced and processed successfully',
       data: {
         callSessions: result.callSessions.length,
         appointmentRequests: result.appointmentRequests.length,
@@ -25,7 +48,7 @@ export async function GET(request: NextRequest) {
     console.error('❌ Error syncing calls:', error);
     return NextResponse.json({
       success: false,
-      message: 'Failed to sync calls from Vapi API',
+      message: 'Failed to sync and process calls',
       error: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString()
     }, { status: 500 });

@@ -1,10 +1,40 @@
 import { VapiCallSession, VapiTranscriptEntry, AppointmentRequest, TherapistNote } from './types';
 
-// Real call session storage (replaces dummy data)
-export const realCallSessions: VapiCallSession[] = [];
-export const realTranscripts: VapiTranscriptEntry[] = [];
-export const realAppointmentRequests: AppointmentRequest[] = [];
-export const realTherapistNotes: TherapistNote[] = [];
+// Real call session storage (in-memory for server-side operations)
+export let realCallSessions: VapiCallSession[] = [];
+export let realTranscripts: VapiTranscriptEntry[] = [];
+export let realAppointmentRequests: AppointmentRequest[] = [];
+export let realTherapistNotes: TherapistNote[] = [];
+
+// Database functions (only available on server)
+let dbModule: any = null;
+try {
+  if (typeof window === 'undefined') {
+    // Only load database module on server-side
+    dbModule = require('./database');
+    console.log('🐘 Database module loaded');
+  }
+} catch (error) {
+  console.error('Error loading database module:', error);
+}
+
+// Helper function to save data to database (only works on server-side)
+async function saveToDatabase(type: string, data: any) {
+  if (typeof window === 'undefined' && dbModule) {
+    try {
+      switch (type) {
+        case 'appointment':
+          await dbModule.saveAppointmentRequest(data);
+          break;
+        case 'note':
+          await dbModule.saveTherapistNote(data);
+          break;
+      }
+    } catch (error) {
+      console.error(`Error saving ${type} to database:`, error);
+    }
+  }
+}
 
 // AI-powered call summarization using Anthropic Claude
 export async function summarizeCallForTherapist(transcript: string, callMetadata: any): Promise<string> {
@@ -224,6 +254,7 @@ export async function processCompletedCall(callSession: VapiCallSession): Promis
         };
         
         realAppointmentRequests.push(appointmentRequest);
+        await saveToDatabase('appointment', appointmentRequest);
         console.log('Created appointment request:', appointmentRequest.id);
       }
     }
@@ -243,6 +274,7 @@ export async function processCompletedCall(callSession: VapiCallSession): Promis
     };
     
     realTherapistNotes.push(therapistNote);
+    await saveToDatabase('note', therapistNote);
     console.log('Created therapist note:', therapistNote.id);
     
     // 4. Update call session status

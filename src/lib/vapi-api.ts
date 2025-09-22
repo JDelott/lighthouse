@@ -33,8 +33,17 @@ export async function fetchVapiCalls(): Promise<VapiCall[]> {
       return [];
     }
 
-    // Fetch calls from Vapi REST API
-    const response = await fetch('https://api.vapi.ai/call', {
+    // Build query parameters
+    const params = new URLSearchParams({
+      limit: '10',
+      // Add assistant filter if available
+      ...(process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID && {
+        assistantId: process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID
+      })
+    });
+    
+    // Fetch calls from Vapi REST API - limit to recent calls only
+    const response = await fetch(`https://api.vapi.ai/call?${params.toString()}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${process.env.VAPI_API_KEY}`,
@@ -54,7 +63,18 @@ export async function fetchVapiCalls(): Promise<VapiCall[]> {
 
     const calls = await response.json();
     console.log('✅ Fetched', calls.length, 'calls from Vapi API');
-    return calls as VapiCall[];
+    
+    // Filter to only calls from the last 7 days to avoid old test data
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const recentCalls = calls.filter((call: VapiCall) => {
+      const callDate = new Date(call.startedAt);
+      return callDate >= sevenDaysAgo;
+    });
+    
+    console.log('🎯 Filtered to', recentCalls.length, 'recent calls (last 7 days)');
+    return recentCalls as VapiCall[];
     
   } catch (error) {
     console.error('❌ Error fetching calls from Vapi:', error);

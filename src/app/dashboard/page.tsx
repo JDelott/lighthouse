@@ -6,17 +6,15 @@ import Link from 'next/link';
 import { getAllCallSessions } from '@/lib/call-processor';
 import { Referral, VapiCallSession, AppointmentRequest, TherapistNote } from '@/lib/types';
 import CallSessionCard from '../components/CallSessionCard';
-import VapiTestButton from '../components/VapiTestButton';
+// import VapiTestButton from '../components/VapiTestButton';
 import { config, formatPhoneForDisplay } from '@/lib/config';
 
 export default function DashboardPage() {
   const [selectedStatus, setSelectedStatus] = useState<'all' | Referral['status']>('all');
   const [activeTab, setActiveTab] = useState<'referrals' | 'calls'>('referrals');
-  const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [apiCallSessions, setApiCallSessions] = useState<VapiCallSession[]>([]);
   const [apiAppointmentRequests, setApiAppointmentRequests] = useState<AppointmentRequest[]>([]);
-  const [lastSync, setLastSync] = useState<string | null>(null);
   
   // Remove dummy referrals - this will be replaced with real referral system later
   const statusCounts = {
@@ -33,38 +31,46 @@ export default function DashboardPage() {
   const memoryCallSessions = getAllCallSessions();
   const allCallSessions = apiCallSessions.length > 0 ? apiCallSessions : memoryCallSessions;
   
-  // Sync calls from Vapi API
-  const syncCallsFromAPI = async () => {
+  // Load calls from database (webhooks automatically populate the database)
+  const loadCallsFromDatabase = async () => {
     setIsLoading(true);
     try {
-      console.log('🔄 Syncing calls from Vapi API...');
-      const response = await fetch('/api/sync-calls');
+      console.log('📊 Loading calls from database...');
+      const response = await fetch('/api/calls');
       const result = await response.json();
       
       if (result.success) {
-        console.log('✅ Synced calls:', result.data);
-        setApiCallSessions(result.data.calls || []);
-        setApiAppointmentRequests(result.data.appointments || []);
-        setLastSync(new Date().toISOString());
+        console.log('✅ Loaded calls from database:', result.data.counts);
+        setApiCallSessions(result.data.callSessions || []);
+        setApiAppointmentRequests(result.data.appointmentRequests || []);
       } else {
-        console.error('❌ Failed to sync calls:', result.error);
+        console.error('❌ Failed to load calls from database:', result.error);
       }
     } catch (error) {
-      console.error('❌ Error syncing calls:', error);
+      console.error('❌ Error loading calls:', error);
     } finally {
       setIsLoading(false);
     }
   };
   
-  const handleRefresh = () => {
-    console.log('🔄 Refreshing dashboard data...');
-    setRefreshKey(prev => prev + 1);
-    syncCallsFromAPI();
-  };
+  // Refresh function - commented out since webhooks handle automatic sync
+  // const handleRefresh = () => {
+  //   console.log('🔄 Refreshing dashboard data...');
+  //   setRefreshKey(prev => prev + 1);
+  //   syncCallsFromAPI(true); // Force fetch from Vapi API
+  // };
   
-  // Auto-sync on component mount
+  // Auto-load data from database on component mount and periodically
   useEffect(() => {
-    syncCallsFromAPI();
+    loadCallsFromDatabase(); // Load from database via API
+    
+    // Set up automatic refresh every 30 seconds (load from database)
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing dashboard data from database...');
+      loadCallsFromDatabase(); // Just load from database
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
   
   const callSessionCounts = {
@@ -86,8 +92,7 @@ export default function DashboardPage() {
   console.log('📊 Dashboard Debug:', {
     totalCallSessions: allCallSessions.length,
     recentCallSessions: recentCallSessions.length,
-    callSessionCounts,
-    refreshKey
+    callSessionCounts
   });
 
   const getStatusColor = (status: Referral['status']) => {
@@ -138,6 +143,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Manual Sync Button - Commented out since webhooks handle automatic sync
               <button
                 onClick={handleRefresh}
                 disabled={isLoading}
@@ -160,6 +166,7 @@ export default function DashboardPage() {
                   Last sync: {new Date(lastSync).toLocaleTimeString()}
                 </div>
               )}
+              */}
               <Link
                 href="/referrals/new"
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
@@ -449,7 +456,9 @@ export default function DashboardPage() {
         </div>
       </main>
       
+      {/* Vapi Test Button - Commented out for production
       <VapiTestButton />
+      */}
     </div>
   );
 }
