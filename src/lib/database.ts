@@ -26,36 +26,64 @@ pool.on('error', (err) => {
 export { pool };
 
 // Call Sessions
-export async function saveCallSession(session: VapiCallSession): Promise<void> {
+export async function saveCallSession(session: VapiCallSession, organizationId?: string): Promise<void> {
   const client = await pool.connect();
   try {
+    // If no organizationId provided, try to find the first available organization (for demo)
+    let orgId = organizationId;
+    if (!orgId) {
+      const orgResult = await client.query('SELECT id FROM organizations LIMIT 1');
+      orgId = orgResult.rows[0]?.id;
+      console.log('🏢 Using default organization for call:', orgId);
+    }
+
     await client.query(`
       INSERT INTO call_sessions (
-        id, call_id, client_phone, status, started_at, ended_at, duration,
+        id, call_id, organization_id, client_phone, status, started_at, ended_at, duration,
         transcript, summary, recording_url, assistant_id, call_type, metadata,
         created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-      ON CONFLICT (id) DO UPDATE SET
-        status = $4, ended_at = $6, duration = $7, transcript = $8, summary = $9,
-        recording_url = $10, metadata = $13, updated_at = $15
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ON CONFLICT (call_id) DO UPDATE SET
+        status = EXCLUDED.status, 
+        ended_at = EXCLUDED.ended_at, 
+        duration = EXCLUDED.duration, 
+        transcript = EXCLUDED.transcript, 
+        summary = EXCLUDED.summary,
+        recording_url = EXCLUDED.recording_url, 
+        metadata = EXCLUDED.metadata, 
+        updated_at = EXCLUDED.updated_at
     `, [
-      session.id, session.callId, session.clientPhone, session.status,
+      session.id, session.callId, orgId, session.clientPhone, session.status,
       session.startedAt, session.endedAt, session.duration, session.transcript,
       session.summary, session.recordingUrl, session.assistantId, session.callType,
       JSON.stringify(session.metadata), session.createdAt, session.updatedAt
     ]);
+    
+    console.log('✅ Call session saved to database:', session.id, 'for org:', orgId);
+  } catch (error) {
+    console.error('❌ Error saving call session to database:', error);
+    throw error;
   } finally {
     client.release();
   }
 }
 
-export async function getCallSessions(): Promise<VapiCallSession[]> {
+export async function getCallSessions(organizationId?: string): Promise<VapiCallSession[]> {
   const client = await pool.connect();
   try {
-    const result = await client.query(`
+    let query = `
       SELECT * FROM call_sessions 
-      ORDER BY created_at DESC
-    `);
+    `;
+    let params: any[] = [];
+    
+    if (organizationId) {
+      query += ` WHERE organization_id = $1`;
+      params.push(organizationId);
+    }
+    
+    query += ` ORDER BY created_at DESC`;
+    
+    const result = await client.query(query, params);
     
     return result.rows.map(row => ({
       id: row.id,
@@ -174,13 +202,25 @@ export async function saveAppointmentRequest(request: AppointmentRequest): Promi
   }
 }
 
-export async function getAppointmentRequests(): Promise<AppointmentRequest[]> {
+export async function getAppointmentRequests(organizationId?: string): Promise<AppointmentRequest[]> {
   const client = await pool.connect();
   try {
-    const result = await client.query(`
-      SELECT * FROM appointment_requests 
-      ORDER BY created_at DESC
-    `);
+    let query = `
+      SELECT ar.* FROM appointment_requests ar
+    `;
+    let params: any[] = [];
+    
+    if (organizationId) {
+      query += `
+        JOIN call_sessions cs ON ar.call_session_id = cs.id 
+        WHERE cs.organization_id = $1
+      `;
+      params.push(organizationId);
+    }
+    
+    query += ` ORDER BY ar.created_at DESC`;
+    
+    const result = await client.query(query, params);
     
     return result.rows.map(row => ({
       id: row.id,
@@ -218,13 +258,25 @@ export async function saveTherapistNote(note: TherapistNote): Promise<void> {
   }
 }
 
-export async function getTherapistNotes(): Promise<TherapistNote[]> {
+export async function getTherapistNotes(organizationId?: string): Promise<TherapistNote[]> {
   const client = await pool.connect();
   try {
-    const result = await client.query(`
-      SELECT * FROM therapist_notes 
-      ORDER BY created_at DESC
-    `);
+    let query = `
+      SELECT tn.* FROM therapist_notes tn
+    `;
+    let params: any[] = [];
+    
+    if (organizationId) {
+      query += `
+        JOIN call_sessions cs ON tn.call_session_id = cs.id 
+        WHERE cs.organization_id = $1
+      `;
+      params.push(organizationId);
+    }
+    
+    query += ` ORDER BY tn.created_at DESC`;
+    
+    const result = await client.query(query, params);
     
     return result.rows.map(row => ({
       id: row.id,

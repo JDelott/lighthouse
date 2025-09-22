@@ -28,6 +28,31 @@ export default function CallSessionCard({ callSession, showPatientInfo = true }:
     return 'bg-green-500';
   };
 
+  // Extract client name from summary or metadata
+  const getClientName = () => {
+    // First check metadata
+    if (callSession.metadata?.clientName) {
+      return callSession.metadata.clientName;
+    }
+    
+    // Extract from summary if available
+    if (callSession.summary) {
+      // Look for patterns like "John Smith called" or "Jane Doe scheduled"
+      const nameMatch = callSession.summary.match(/^([A-Z][a-z]+ [A-Z][a-z]+)\s+(called|scheduled|contacted|requested)/);
+      if (nameMatch) {
+        return nameMatch[1];
+      }
+      
+      // Alternative pattern: "Patient [Name] called"
+      const patientMatch = callSession.summary.match(/Patient ([A-Z][a-z]+ [A-Z][a-z]+)/);
+      if (patientMatch) {
+        return patientMatch[1];
+      }
+    }
+    
+    return 'Anonymous Caller';
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
       <div className="flex justify-between items-start mb-4">
@@ -41,7 +66,7 @@ export default function CallSessionCard({ callSession, showPatientInfo = true }:
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
-              {callSession.metadata?.clientName || 'Anonymous Caller'}
+              {getClientName()}
             </h3>
             <p className="text-sm text-gray-600">
               {formatPhoneNumber(callSession.clientPhone)}

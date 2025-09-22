@@ -12,8 +12,10 @@ export function formatPhoneNumber(phone: string): string {
   // Basic phone number formatting
   const cleaned = phone.replace(/\D/g, '');
   if (cleaned.length === 11 && cleaned.startsWith('1')) {
-    return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    // For 11-digit numbers starting with 1, format as +1 (XXX) XXX-XXXX
+    return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
   } else if (cleaned.length === 10) {
+    // For 10-digit numbers, format as (XXX) XXX-XXXX
     return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
   }
   return phone;
@@ -111,7 +113,7 @@ export function deepClone<T>(obj: T): T {
 }
 
 // Debounce function
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   delay: number
 ): (...args: Parameters<T>) => void {

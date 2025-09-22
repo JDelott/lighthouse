@@ -1,61 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  getAllCallSessions, 
-  getAppointmentRequests, 
-  getTherapistNotes,
-  realCallSessions,
-  realTranscripts,
-  realAppointmentRequests,
-  realTherapistNotes
-} from '@/lib/call-processor';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
+import { pool } from '@/lib/database';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 Debug: Checking all call data...');
+    const session = await getServerSession(authOptions);
     
-    const allCallSessions = getAllCallSessions();
-    const appointmentRequests = getAppointmentRequests();
-    const therapistNotes = getTherapistNotes();
-    
-    const debugInfo = {
-      timestamp: new Date().toISOString(),
-      callSessions: {
-        count: allCallSessions.length,
-        data: allCallSessions
-      },
-      transcripts: {
-        count: realTranscripts.length,
-        data: realTranscripts
-      },
-      appointmentRequests: {
-        count: appointmentRequests.length,
-        data: appointmentRequests
-      },
-      therapistNotes: {
-        count: therapistNotes.length,
-        data: therapistNotes
-      },
-      rawArrays: {
-        realCallSessionsCount: realCallSessions.length,
-        realTranscriptsCount: realTranscripts.length,
-        realAppointmentRequestsCount: realAppointmentRequests.length,
-        realTherapistNotesCount: realTherapistNotes.length
+    const client = await pool.connect();
+    try {
+      // Get all organizations
+      const orgsResult = await client.query('SELECT id, name, plan_type FROM organizations ORDER BY created_at');
+      
+      // Get all calls (without filtering)
+      const callsResult = await client.query(`
+        SELECT id, call_id, organization_id, client_phone, status, created_at 
+        FROM call_sessions 
+        ORDER BY created_at DESC
+      `);
+      
+      // Get user info if logged in
+      let userInfo = null;
+      if (session) {
+        userInfo = {
+          id: session.user.id,
+          email: session.user.email,
+          organizationId: session.user.organizationId,
+          organizationName: session.user.organization?.name
+        };
       }
-    };
-    
-    console.log('📊 Debug Info:', debugInfo);
-    
-    return NextResponse.json({
-      success: true,
-      message: 'Debug information retrieved',
-      data: debugInfo
-    });
+      
+      return NextResponse.json({
+        success: true,
+        debug: {
+          session: !!session,
+          userInfo,
+          organizations: orgsResult.rows,
+          allCalls: callsResult.rows,
+          callsCount: callsResult.rows.length
+        }
+      });
+      
+    } finally {
+      client.release();
+    }
     
   } catch (error) {
-    console.error('❌ Error getting debug info:', error);
+    console.error('Debug error:', error);
     return NextResponse.json({
       success: false,
-      message: 'Error retrieving debug information',
       error: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }

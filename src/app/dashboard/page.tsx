@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 // Removed dummy data imports - using real data only
 import { getAllCallSessions } from '@/lib/call-processor';
@@ -10,9 +12,35 @@ import CallSessionCard from '../components/CallSessionCard';
 import { config, formatPhoneForDisplay } from '@/lib/config';
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [apiCallSessions, setApiCallSessions] = useState<VapiCallSession[]>([]);
   const [apiAppointmentRequests, setApiAppointmentRequests] = useState<AppointmentRequest[]>([]);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.user-menu-container')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showUserMenu]);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (status === 'loading') return; // Still loading
+    if (!session) {
+      router.push('/auth/signin');
+    }
+  }, [session, status, router]);
 
   // Get real call sessions (fallback to in-memory, prefer API data)
   const memoryCallSessions = getAllCallSessions();
@@ -80,6 +108,27 @@ export default function DashboardPage() {
   });
 
 
+  // Show loading state
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render anything if no session
+  if (!session) {
+    return null;
+  }
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: '/' });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -93,38 +142,89 @@ export default function DashboardPage() {
               <span className="ml-3 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
                 HIPAA Compliant
               </span>
-            </div>
-            <div className="flex items-center space-x-4">
-              {/* Manual Sync Button - Commented out since webhooks handle automatic sync
-              <button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2"
-              >
-                {isLoading ? (
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+              <div className="ml-4 text-sm text-gray-600">
+                <span className="font-medium">{session.user.organization?.name}</span>
+                {session.user.organization?.planType && (
+                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full capitalize">
+                    {session.user.organization.planType}
+                  </span>
                 )}
-                <span>{isLoading ? 'Syncing...' : 'Sync from Vapi'}</span>
-              </button>
-              {lastSync && (
-                <div className="text-xs text-gray-500">
-                  Last sync: {new Date(lastSync).toLocaleTimeString()}
-                </div>
-              )}
-              */}
-              <Link
-                href="/dashboard"
-                className="bg-gray-100 text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Dashboard
-              </Link>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              {/* User Menu */}
+              <div className="relative user-menu-container">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-3 text-sm bg-white border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-white font-medium text-sm">
+                      {session.user.name?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="text-left hidden sm:block">
+                    <div className="font-medium text-gray-900">{session.user.name}</div>
+                    <div className="text-xs text-gray-500 capitalize">{session.user.role}</div>
+                  </div>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {/* Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <div className="p-3 border-b border-gray-100">
+                      <div className="font-medium text-gray-900">{session.user.name}</div>
+                      <div className="text-sm text-gray-500">{session.user.email}</div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {session.user.organization?.name} • {session.user.role}
+                      </div>
+                    </div>
+                    <div className="py-1">
+                      <Link
+                        href="/settings"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          Account Settings
+                        </div>
+                      </Link>
+                      <Link
+                        href="/pricing"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowUserMenu(false)}
+                      >
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                          Billing & Plans
+                        </div>
+                      </Link>
+                      <div className="border-t border-gray-100 my-1"></div>
+                      <button
+                        onClick={handleSignOut}
+                        className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                      >
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          Sign Out
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -133,11 +233,63 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Title */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">AI Call Management Dashboard</h1>
-          <p className="mt-2 text-gray-600">
-            Monitor and manage AI-powered appointment scheduling calls with comprehensive analytics
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Welcome back, {session.user.name?.split(' ')[0]}! 👋
+              </h1>
+              <p className="mt-2 text-gray-600">
+                Here's what's happening at <span className="font-medium">{session.user.organization?.name}</span>
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-gray-500">Current Plan</div>
+              <div className="flex items-center space-x-2">
+                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full capitalize">
+                  {session.user.organization?.planType || 'Trial'}
+                </span>
+                {session.user.organization?.planType === 'trial' && (
+                  <Link 
+                    href="/pricing" 
+                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  >
+                    Upgrade
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Usage Progress Bar for Trial Users */}
+        {session.user.organization?.planType === 'trial' && (
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Trial Usage</h3>
+              <Link 
+                href="/pricing" 
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+              >
+                Upgrade Plan
+              </Link>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Calls this month</span>
+                <span className="font-medium">{callSessionCounts.total} / 50</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${Math.min((callSessionCounts.total / 50) * 100, 100)}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-gray-500">
+                {50 - callSessionCounts.total} calls remaining in your trial
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
