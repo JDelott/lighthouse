@@ -131,7 +131,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-8">
@@ -231,180 +231,161 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-8 py-16">
-        {/* Page Title */}
-        <div className="mb-16">
-          <div className="grid grid-cols-12 gap-8 items-start">
-            <div className="col-span-12 lg:col-span-8">
-              <div className="space-y-6">
-                <h1 className="text-5xl font-light text-black leading-tight">
-                  Welcome back, {session.user.name?.split(' ')[0]}
-                </h1>
-                <div className="w-24 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
-                <p className="text-lg text-gray-600 font-light leading-relaxed">
-                  Here's what's happening at {session.user.organization?.name}
-                </p>
-              </div>
+      <main className="max-w-7xl mx-auto px-8 py-12">
+        
+        {/* Header Section */}
+        <div className="mb-12">
+          <div className="flex items-start justify-between">
+            <div className="space-y-4">
+              <h1 className="text-4xl font-light text-black leading-tight">
+                Welcome back, {session.user.name?.split(' ')[0]}
+              </h1>
+              <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
+              <p className="text-gray-600 font-light leading-relaxed">
+                {session.user.organization?.name} • {session.user.organization?.planType || 'Trial'} Plan
+              </p>
             </div>
-            <div className="col-span-12 lg:col-span-4">
-              <div className="space-y-4">
-                <div className="text-sm text-gray-500 font-light uppercase tracking-widest">Current Plan</div>
-                <div className="flex items-center space-x-4">
-                  <span className="text-lg font-light text-black capitalize">
-                    {session.user.organization?.planType || 'Trial'}
-                  </span>
-                  {session.user.organization?.planType === 'trial' && (
-                    <Link 
-                      href="/pricing" 
-                      className="text-gray-700 hover:text-blue-600 text-sm font-normal tracking-wide transition-colors border-b border-gray-300 hover:border-blue-500 pb-1"
-                    >
-                      Upgrade
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Usage Progress Bar for Trial Users */}
-        {session.user.organization?.planType === 'trial' && (
-          <div className="bg-gray-50 p-8 mb-16 border border-gray-100">
-            <div className="grid grid-cols-12 gap-8 items-center">
-              <div className="col-span-12 lg:col-span-8">
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-light text-black">Trial Usage</h3>
-                  <div className="space-y-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 font-light">Calls this month</span>
-                      <span className="font-light text-black">{callSessionCounts.total} / 50</span>
-                    </div>
-                    <div className="w-full bg-gray-200 h-1">
-                      <div 
-                        className="bg-gradient-to-r from-blue-500 to-cyan-400 h-1 transition-all duration-300" 
-                        style={{ width: `${Math.min((callSessionCounts.total / 50) * 100, 100)}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-gray-500 font-light">
-                      {50 - callSessionCounts.total} calls remaining in your trial
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="col-span-12 lg:col-span-4 text-right">
+            
+            <div className="flex items-center space-x-4">
+              <RefreshButton 
+                onRefresh={() => loadCallsFromDatabase()}
+                className="bg-white border border-gray-200 hover:border-blue-500"
+              />
+              {session.user.organization?.planType === 'trial' && (
                 <Link 
                   href="/pricing" 
-                  className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-8 py-3 text-sm font-normal tracking-wide hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"
+                  className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-6 py-2 text-sm font-normal tracking-wide hover:from-blue-600 hover:to-cyan-500 transition-all duration-200 rounded-lg"
                 >
                   Upgrade Plan
                 </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 mb-24">
-          <div className="space-y-4">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full flex items-center justify-center">
-              <div className="w-3 h-3 bg-white/40 rounded-full"></div>
-            </div>
-            <div className="space-y-2">
-              <h4 className="text-sm font-normal text-black uppercase tracking-widest">Total Calls</h4>
-              <p className="text-3xl font-light text-black">{callSessionCounts.total}</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full flex items-center justify-center">
-              <div className="w-3 h-3 bg-white/40 rounded-full"></div>
-            </div>
-            <div className="space-y-2">
-              <h4 className="text-sm font-normal text-black uppercase tracking-widest">Appointments</h4>
-              <p className="text-3xl font-light text-black">{callSessionCounts.appointmentRequests}</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full flex items-center justify-center">
-              <div className="w-3 h-3 bg-white/40 rounded-full"></div>
-            </div>
-            <div className="space-y-2">
-              <h4 className="text-sm font-normal text-black uppercase tracking-widest">Pending</h4>
-              <p className="text-3xl font-light text-black">{callSessionCounts.pendingScheduling}</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full flex items-center justify-center">
-              <div className="w-3 h-3 bg-white/40 rounded-full"></div>
-            </div>
-            <div className="space-y-2">
-              <h4 className="text-sm font-normal text-black uppercase tracking-widest">Urgent</h4>
-              <p className="text-3xl font-light text-black">{callSessionCounts.urgentRequests}</p>
+              )}
             </div>
           </div>
         </div>
 
-        <section className="space-y-12">
-          <div className="grid grid-cols-12 gap-8">
-            <div className="col-span-12 lg:col-span-6">
-              <div className="space-y-6">
-                <h2 className="text-3xl font-light text-black">Recent Calls</h2>
-                <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
-                <p className="text-gray-600 font-light leading-relaxed">
-                  AI appointment scheduling and patient interaction history
-                </p>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-12 gap-8">
+          
+          {/* Left Column - Stats & Overview */}
+          <div className="col-span-12 lg:col-span-4 space-y-8">
+            
+            {/* Quick Stats Card */}
+            <div className="bg-white border border-gray-100 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-black mb-6">Call Overview</h3>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="text-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mx-auto mb-3 flex items-center justify-center">
+                    <div className="w-3 h-3 bg-white/40 rounded-full"></div>
+                  </div>
+                  <p className="text-2xl font-light text-black">{callSessionCounts.total}</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Total Calls</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mx-auto mb-3 flex items-center justify-center">
+                    <div className="w-3 h-3 bg-white/40 rounded-full"></div>
+                  </div>
+                  <p className="text-2xl font-light text-black">{callSessionCounts.appointmentRequests}</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Appointments</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mx-auto mb-3 flex items-center justify-center">
+                    <div className="w-3 h-3 bg-white/40 rounded-full"></div>
+                  </div>
+                  <p className="text-2xl font-light text-black">{callSessionCounts.pendingScheduling}</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Pending</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mx-auto mb-3 flex items-center justify-center">
+                    <div className="w-3 h-3 bg-white/40 rounded-full"></div>
+                  </div>
+                  <p className="text-2xl font-light text-black">{callSessionCounts.urgentRequests}</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Urgent</p>
+                </div>
               </div>
             </div>
-            <div className="col-span-12 lg:col-span-6">
-              <div className="flex items-center justify-end space-x-8 text-sm text-gray-500 font-light">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mr-2"></div>
-                  Appointments: {callSessionCounts.appointmentRequests}
-                </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mr-2"></div>
-                  Pending: {callSessionCounts.pendingScheduling}
-                </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mr-2"></div>
-                  Urgent: {callSessionCounts.urgentRequests}
-                </div>
-                <RefreshButton 
-                  onRefresh={() => loadCallsFromDatabase()}
-                  className="ml-4"
-                />
-              </div>
-            </div>
-          </div>
 
-          <div className="border-t border-gray-100 pt-12">
-            {recentCallSessions.length > 0 ? (
-              <div className="space-y-8">
-                {recentCallSessions.map((callSession) => (
-                  <CallSessionCard 
-                    key={callSession.id} 
-                    callSession={callSession}
-                    showPatientInfo={true}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-24">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mx-auto mb-8 flex items-center justify-center">
-                  <div className="w-6 h-6 bg-white/30 rounded-full"></div>
-                </div>
+            {/* Trial Usage Card */}
+            {session.user.organization?.planType === 'trial' && (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
+                <h3 className="text-lg font-medium text-black mb-4">Trial Usage</h3>
                 <div className="space-y-4">
-                  <h3 className="text-xl font-light text-black">No calls yet</h3>
-                  <p className="text-gray-500 font-light max-w-md mx-auto leading-relaxed">
-                    Clients can call {formatPhoneForDisplay(config.vapi.phoneNumber)} to schedule appointments with the AI assistant.
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Calls this month</span>
+                    <span className="font-medium text-black">{callSessionCounts.total} / 50</span>
+                  </div>
+                  <div className="w-full bg-blue-200 h-2 rounded-full">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-cyan-400 h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${Math.min((callSessionCounts.total / 50) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    {50 - callSessionCounts.total} calls remaining in your trial
                   </p>
                 </div>
               </div>
             )}
+
+            {/* Contact Info Card */}
+            <div className="bg-gray-50 border border-gray-100 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-black mb-4">AI Assistant</h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-600">Phone Number</p>
+                  <p className="font-medium text-black">{formatPhoneForDisplay(config.vapi.phoneNumber)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Status</p>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <p className="text-sm font-medium text-green-600">Active</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </section>
+
+          {/* Right Column - Recent Calls */}
+          <div className="col-span-12 lg:col-span-8">
+            <div className="bg-white border border-gray-100 rounded-lg">
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-medium text-black">Recent Calls</h2>
+                    <p className="text-sm text-gray-600 mt-1">AI appointment scheduling and patient interactions</p>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {callSessionCounts.total} total calls
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                {recentCallSessions.length > 0 ? (
+                  <div className="space-y-6">
+                    {recentCallSessions.map((callSession) => (
+                      <CallSessionCard 
+                        key={callSession.id} 
+                        callSession={callSession}
+                        showPatientInfo={true}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mx-auto mb-4 flex items-center justify-center">
+                      <div className="w-5 h-5 bg-white/30 rounded-full"></div>
+                    </div>
+                    <h3 className="text-lg font-medium text-black mb-2">No calls yet</h3>
+                    <p className="text-gray-500 max-w-sm mx-auto">
+                      Clients can call {formatPhoneForDisplay(config.vapi.phoneNumber)} to schedule appointments with the AI assistant.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
       
       {/* Vapi Test Button - Commented out for production
