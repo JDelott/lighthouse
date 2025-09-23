@@ -3,6 +3,7 @@
 import { VapiCallSession } from '@/lib/types';
 import { formatDuration, formatPhoneNumber } from '@/lib/utils';
 import Link from 'next/link';
+import DeleteCallButton from './DeleteCallButton';
 
 interface CallSessionCardProps {
   callSession: VapiCallSession;
@@ -85,6 +86,16 @@ export default function CallSessionCard({ callSession, showPatientInfo = true }:
               </span>
             </div>
           )}
+          <DeleteCallButton 
+            callId={callSession.id}
+            callInfo={{
+              clientPhone: callSession.clientPhone,
+              startedAt: callSession.startedAt
+            }}
+            onDeleteSuccess={(deletedCallId) => {
+              console.log('Call deleted:', deletedCallId);
+            }}
+          />
         </div>
       </div>
 
