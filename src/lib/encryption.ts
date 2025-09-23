@@ -2,7 +2,11 @@ import CryptoJS from 'crypto-js';
 
 // HIPAA-compliant encryption utilities
 // In production, these keys should be stored in environment variables
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-key-change-in-production';
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+
+if (!ENCRYPTION_KEY) {
+  throw new Error('ENCRYPTION_KEY environment variable is required for security');
+}
 const IV_LENGTH = 16; // For AES, this is always 16
 
 export interface EncryptedData {
