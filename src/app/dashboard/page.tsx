@@ -249,6 +249,7 @@ export default function DashboardPage() {
             <div className="flex items-center space-x-4">
               <RefreshButton 
                 onRefresh={() => loadCallsFromDatabase()}
+                syncFromVapi={true}
                 className="bg-white border border-gray-200 hover:border-blue-500"
               />
               {session.user.organization?.planType === 'trial' && (

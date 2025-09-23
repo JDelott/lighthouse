@@ -5,41 +5,51 @@ import { useState } from 'react';
 interface RefreshButtonProps {
   onRefresh?: () => void;
   className?: string;
+  syncFromVapi?: boolean; // Whether to sync latest call from Vapi first
 }
 
-export default function RefreshButton({ onRefresh, className = '' }: RefreshButtonProps) {
+export default function RefreshButton({ onRefresh, className = '', syncFromVapi = false }: RefreshButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRefresh = async () => {
     setIsLoading(true);
     
     try {
-      // Sync latest call from API
-      const response = await fetch('/api/sync-latest-call', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      console.log('🔄 Refreshing dashboard data...');
       
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log('✅ Synced:', result.data?.isNewCall ? 'New call' : 'Updated call');
+      // Optionally sync latest call from Vapi first
+      if (syncFromVapi) {
+        console.log('📡 Syncing latest call from Vapi...');
+        try {
+          const response = await fetch('/api/sync-latest', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            console.log('✅ Synced from Vapi:', result.data);
+          } else {
+            console.warn('⚠️ Vapi sync failed:', result.message);
+          }
+        } catch (syncError) {
+          console.warn('⚠️ Vapi sync error:', syncError);
+          // Continue with database refresh even if sync fails
+        }
       }
       
-      // Call the refresh callback
+      // Call the refresh callback (which loads from database)
       if (onRefresh) {
-        onRefresh();
+        await onRefresh();
       }
       
-      // Refresh the page
-      window.location.reload();
+      console.log('✅ Dashboard refreshed');
       
     } catch (error) {
-      console.error('❌ Sync error:', error);
-      // Still refresh the page to show any existing data
-      window.location.reload();
+      console.error('❌ Refresh error:', error);
     } finally {
       setIsLoading(false);
     }
