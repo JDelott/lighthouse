@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { getAllCallSessions } from '@/lib/call-processor';
 import { VapiCallSession, AppointmentRequest, TherapistNote } from '@/lib/types';
 import CallSessionCard from '../components/CallSessionCard';
+import RefreshButton from '../components/RefreshButton';
 // import VapiTestButton from '../components/VapiTestButton';
 import { config, formatPhoneForDisplay } from '@/lib/config';
 
@@ -370,6 +371,10 @@ export default function DashboardPage() {
                   <div className="w-2 h-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mr-2"></div>
                   Urgent: {callSessionCounts.urgentRequests}
                 </div>
+                <RefreshButton 
+                  onRefresh={() => loadCallsFromDatabase()}
+                  className="ml-4"
+                />
               </div>
             </div>
           </div>

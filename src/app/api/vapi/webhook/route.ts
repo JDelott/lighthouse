@@ -8,6 +8,7 @@ import {
 } from '@/lib/call-processor';
 import { saveCallSession, saveTranscript } from '@/lib/database';
 import { fetchVapiCalls, convertVapiCallToSession, fetchAndProcessCalls } from '@/lib/vapi-api';
+import { OrganizationResolver } from '@/lib/organization-resolver';
 
 // In a real implementation, you would verify the webhook signature
 function verifyVapiWebhook(_request: NextRequest): boolean {
@@ -81,6 +82,19 @@ export async function POST(request: NextRequest) {
 async function handleCallStarted(event: VapiWebhookEvent) {
   const callData = event.data;
   
+  // Resolve which organization this call belongs to
+  const organizationId = await OrganizationResolver.resolve({
+    assistantId: event.assistantId,
+    phoneNumber: callData.customer?.number,
+    request: undefined, // No request object in webhook events
+    fallbackToDefault: true
+  });
+
+  if (!organizationId) {
+    console.error('❌ Could not resolve organization for call:', event.callId);
+    return;
+  }
+  
   // Create new call session
   const newCallSession: VapiCallSession = {
     id: `vapi-call-${Date.now()}`,
@@ -94,11 +108,11 @@ async function handleCallStarted(event: VapiWebhookEvent) {
     updatedAt: event.timestamp
   };
 
-  // Store in real call sessions and database
+  // Store in real call sessions and database with resolved organization
   realCallSessions.push(newCallSession);
-  await saveCallSession(newCallSession);
+  await saveCallSession(newCallSession, organizationId);
   
-  console.log('✅ Real call started:', newCallSession.id, 'Phone:', newCallSession.clientPhone);
+  console.log('✅ Real call started:', newCallSession.id, 'Phone:', newCallSession.clientPhone, 'Org:', organizationId);
   console.log('📊 Total call sessions now:', realCallSessions.length);
 }
 
@@ -131,8 +145,21 @@ async function handleCallEnded(event: VapiWebhookEvent) {
         console.log('➕ Added new call session:', callSession.id);
       }
       
-      // Save to database
-      await saveCallSession(callSession);
+      // Resolve which organization this call belongs to
+      const organizationId = await OrganizationResolver.resolve({
+        assistantId: event.assistantId,
+        phoneNumber: completedCall.customer?.number,
+        request: undefined,
+        fallbackToDefault: true
+      });
+
+      if (!organizationId) {
+        console.error('❌ Could not resolve organization for completed call:', event.callId);
+        return;
+      }
+
+      // Save to database with resolved organization
+      await saveCallSession(callSession, organizationId);
       
       // Process completed call with AI if it has a transcript
       if (callSession.status === 'completed' && callSession.transcript) {
