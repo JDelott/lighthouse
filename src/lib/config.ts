@@ -9,16 +9,16 @@ export const config = {
   
   // Practice Information
   practice: {
-    name: 'Lighthouse Psychology',
+    name: 'The Mental Health Hub',
     therapistName: 'Dr. Martinez',
     address: '123 Main Street, Suite 200, Boston, MA 02101',
-    email: 'info@lighthousepsychology.com',
-    website: 'https://lighthousepsychology.com',
+    email: 'info@mentalhealthhub.com',
+    website: 'https://mentalhealthhub.com',
   },
   
   // App Configuration
   app: {
-    name: 'Lighthouse Psychology',
+    name: 'The Mental Health Hub',
     description: 'Professional mental health services with AI-powered appointment scheduling',
     url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   },

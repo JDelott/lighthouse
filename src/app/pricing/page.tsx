@@ -17,10 +17,7 @@ const plans = [
       'HIPAA compliant',
       'Basic analytics',
     ],
-    limitations: [
-      'Limited to 50 calls/month',
-      'Basic features only',
-    ],
+    limitations: [],
     cta: 'Start Free Trial',
     popular: false,
     planId: 'trial',
@@ -40,10 +37,8 @@ const plans = [
       'Appointment scheduling',
       'Patient intake forms',
     ],
-    limitations: [
-      '$0.50 per additional call',
-    ],
-    cta: 'Start Free Trial',
+    limitations: [],
+    cta: 'Get Starter Plan',
     popular: false,
     planId: 'starter',
   },
@@ -65,10 +60,8 @@ const plans = [
       'Custom integrations',
       'API access',
     ],
-    limitations: [
-      '$0.40 per additional call',
-    ],
-    cta: 'Start Free Trial',
+    limitations: [],
+    cta: 'Get Professional Plan',
     popular: true,
     planId: 'professional',
   },
@@ -107,7 +100,7 @@ export default function PricingPage() {
   const handleGetStarted = (planId: string) => {
     if (planId === 'enterprise') {
       // Redirect to contact form
-      window.location.href = 'mailto:sales@lighthouse-ai.com?subject=Enterprise Plan Inquiry';
+      window.location.href = 'mailto:sales@mentalhealthhub.com?subject=Enterprise Plan Inquiry';
     } else {
       // Redirect to signup with plan parameter
       router.push(`/auth/signup?plan=${planId}`);
@@ -115,31 +108,27 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-sm shadow-sm border-b sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-800 bg-clip-text text-transparent">
-                Lighthouse AI Assistant
-              </h1>
-            </Link>
-            <div className="flex items-center space-x-4">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-8">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center">
+              <div className="w-px h-6 bg-gradient-to-b from-blue-500 to-cyan-400 mr-3"></div>
+              <Link href="/" className="text-xl font-normal tracking-tight text-black hover:text-blue-600 transition-colors">
+                The Mental Health Hub
+              </Link>
+            </div>
+            <div className="flex items-center space-x-8">
               <Link
                 href="/auth/signin"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                className="text-gray-700 hover:text-black text-sm font-normal tracking-wide transition-colors"
               >
                 Sign In
               </Link>
               <Link
                 href="/auth/signup"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-6 py-2 text-sm font-normal tracking-wide hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"
               >
                 Start Free Trial
               </Link>
@@ -148,13 +137,14 @@ export default function PricingPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <main className="max-w-6xl mx-auto px-8 py-12">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          <h1 className="text-4xl font-light text-black leading-tight mb-6">
             Simple, transparent pricing
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400 mx-auto mb-8"></div>
+          <p className="text-xl text-gray-600 font-light leading-relaxed max-w-3xl mx-auto">
             Choose the perfect plan for your practice. Start with a free trial and scale as you grow.
           </p>
           
@@ -185,79 +175,83 @@ export default function PricingPage() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative bg-white rounded-2xl shadow-lg border-2 transition-all duration-200 hover:shadow-xl ${
-                plan.popular ? 'border-blue-500 scale-105' : 'border-gray-200'
+              className={`relative bg-white border transition-all duration-200 hover:border-blue-500 flex flex-col h-full ${
+                plan.popular ? 'border-blue-500 shadow-sm' : 'border-gray-200'
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-3 py-1 text-xs font-normal tracking-wide">
                     Most Popular
                   </span>
                 </div>
               )}
               
-              <div className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-                <p className="text-gray-600 mb-6">{plan.description}</p>
+              <div className="p-6 flex flex-col h-full">
+                <h3 className="text-xl font-normal text-black mb-2">{plan.name}</h3>
+                <p className="text-gray-600 font-light text-sm mb-6">{plan.description}</p>
                 
                 <div className="mb-6">
                   <div className="flex items-baseline">
-                    <span className="text-4xl font-bold text-gray-900">
+                    <span className="text-3xl font-light text-black">
                       ${isAnnual && plan.price > 0 ? Math.round(plan.price * 0.8) : plan.price}
                     </span>
                     {plan.price > 0 && (
-                      <span className="text-gray-600 ml-2">/{isAnnual ? 'month' : plan.period}</span>
+                      <span className="text-gray-600 font-light text-sm ml-2">/{isAnnual ? 'month' : plan.period}</span>
                     )}
                     {plan.price === 0 && (
-                      <span className="text-gray-600 ml-2">{plan.period}</span>
+                      <span className="text-gray-600 font-light text-sm ml-2">{plan.period}</span>
                     )}
                   </div>
                   {isAnnual && plan.price > 0 && (
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 font-light mt-1">
                       Billed annually (${Math.round(plan.price * 0.8 * 12)}/year)
                     </p>
                   )}
                 </div>
 
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start">
-                      <svg className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-gray-700 text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex-grow">
+                  <ul className="space-y-2 mb-6">
+                    {plan.features.map((feature, index) => (
+                      <li key={index} className="flex items-start">
+                        <svg className="w-4 h-4 text-blue-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-gray-700 text-xs font-light">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-                {plan.limitations.length > 0 && (
-                  <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs font-medium text-gray-600 mb-2">Limitations:</p>
-                    <ul className="space-y-1">
-                      {plan.limitations.map((limitation, index) => (
-                        <li key={index} className="text-xs text-gray-500">
-                          • {limitation}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                  {plan.limitations.length > 0 && (
+                    <div className="mb-6 p-3 bg-gray-50 border border-gray-100">
+                      <p className="text-xs font-light text-gray-600 mb-2">Limitations:</p>
+                      <ul className="space-y-1">
+                        {plan.limitations.map((limitation, index) => (
+                          <li key={index} className="text-xs text-gray-500 font-light">
+                            • {limitation}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
 
-                <button
-                  onClick={() => handleGetStarted(plan.planId)}
-                  className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
-                    plan.popular
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl'
-                      : 'bg-gray-900 hover:bg-gray-800 text-white'
-                  }`}
-                >
-                  {plan.cta}
-                </button>
+                <div className="mt-auto">
+                  <button
+                    onClick={() => handleGetStarted(plan.planId)}
+                    className={`w-full py-2 px-4 text-sm font-normal tracking-wide transition-all duration-200 ${
+                      plan.popular
+                        ? 'bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 text-white'
+                        : 'bg-white border border-gray-200 text-black hover:border-blue-500'
+                    }`}
+                  >
+                    {plan.cta}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -265,66 +259,67 @@ export default function PricingPage() {
 
         {/* FAQ Section */}
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+          <h2 className="text-3xl font-light text-center text-black mb-6">
             Frequently Asked Questions
           </h2>
+          <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400 mx-auto mb-12"></div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <h3 className="text-lg font-normal text-black mb-3">
                 How does the free trial work?
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 font-light text-sm leading-relaxed">
                 Start with a 14-day free trial that includes up to 50 calls. No credit card required. 
                 You can upgrade or cancel anytime during the trial period.
               </p>
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <h3 className="text-lg font-normal text-black mb-3">
                 What happens if I exceed my call limit?
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 font-light text-sm leading-relaxed">
                 Additional calls are charged at the overage rate shown for each plan. You'll receive 
                 notifications as you approach your limit.
               </p>
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <h3 className="text-lg font-normal text-black mb-3">
                 Is my data secure and HIPAA compliant?
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 font-light text-sm leading-relaxed">
                 Yes, all data is encrypted end-to-end and we maintain full HIPAA compliance. 
                 We never store or share patient information inappropriately.
               </p>
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <h3 className="text-lg font-normal text-black mb-3">
                 Can I change plans anytime?
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 font-light text-sm leading-relaxed">
                 Absolutely. You can upgrade or downgrade your plan at any time. Changes take effect 
                 at your next billing cycle.
               </p>
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <h3 className="text-lg font-normal text-black mb-3">
                 Do you offer custom integrations?
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 font-light text-sm leading-relaxed">
                 Professional and Enterprise plans include API access and custom integrations. 
                 Contact us to discuss your specific needs.
               </p>
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <h3 className="text-lg font-normal text-black mb-3">
                 What support do you provide?
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 font-light text-sm leading-relaxed">
                 All plans include support. Starter gets email & chat, Professional gets priority support, 
                 and Enterprise gets a dedicated account manager.
               </p>
@@ -333,23 +328,24 @@ export default function PricingPage() {
         </div>
 
         {/* CTA Section */}
-        <div className="text-center mt-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-12 text-white">
-          <h2 className="text-3xl font-bold mb-4">
+        <div className="text-center mt-16 border border-gray-200 p-12">
+          <h2 className="text-3xl font-light text-black mb-4">
             Ready to transform your practice?
           </h2>
-          <p className="text-xl mb-8 opacity-90">
+          <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400 mx-auto mb-6"></div>
+          <p className="text-gray-600 font-light leading-relaxed mb-8">
             Start your free trial today. No credit card required.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/auth/signup"
-              className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold transition-colors"
+              className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-6 py-2 text-sm font-normal tracking-wide hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"
             >
               Start Free Trial
             </Link>
             <Link
               href="/"
-              className="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-3 rounded-lg font-semibold transition-colors"
+              className="bg-white border border-gray-200 text-black px-6 py-2 text-sm font-normal tracking-wide hover:border-blue-500 transition-all duration-200"
             >
               Try Demo Call
             </Link>

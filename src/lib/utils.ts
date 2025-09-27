@@ -1,4 +1,4 @@
-// Utility functions for the Lighthouse application
+// Utility functions for The Mental Health Hub application
 
 // Format duration in seconds to MM:SS format
 export function formatDuration(seconds: number): string {

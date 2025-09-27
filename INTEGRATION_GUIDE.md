@@ -27,8 +27,8 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 3. Use these settings:
 
 **Basic Settings:**
-- Name: `Lighthouse Psychology Scheduling Assistant`
-- First Message: `Hello, thank you for calling Lighthouse Psychology. I'm the scheduling assistant. Dr. Martinez is currently with a client, but I'm here to help you schedule an appointment or answer any questions about our services. How can I assist you today?`
+- Name: `The Mental Health Hub Scheduling Assistant`
+- First Message: `Hello, thank you for calling The Mental Health Hub. I'm the scheduling assistant. Dr. Martinez is currently with a client, but I'm here to help you schedule an appointment or answer any questions about our services. How can I assist you today?`
 
 **Model Configuration:**
 - Provider: `OpenAI`
@@ -48,7 +48,7 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 - Recording Enabled: `true`
 - Max Duration: `1200` seconds (20 minutes)
 - Silence Timeout: `30` seconds
-- End Call Message: `Thank you for calling Lighthouse Psychology. You should receive a confirmation email or text shortly with your appointment details. We look forward to seeing you soon!`
+- End Call Message: `Thank you for calling The Mental Health Hub. You should receive a confirmation email or text shortly with your appointment details. We look forward to seeing you soon!`
 
 ### 2.2 Add Functions
 In the Functions tab, copy and paste the JSON from `vapi-functions.json`:

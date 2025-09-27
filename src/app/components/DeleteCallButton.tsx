@@ -52,15 +52,17 @@ export default function DeleteCallButton({
         // Show success message briefly
         const successMsg = `Call deleted successfully. ${result.data.remainingCalls} calls remaining.`;
         
-        // Call the success callback
+        // Call the success callback first to update parent state
         if (onDeleteSuccess) {
           onDeleteSuccess(callId);
+          // If callback is provided, don't reload page - let parent handle the update
+          console.log('✅ Call deletion handled by parent callback');
+        } else {
+          // Only reload if no callback provided (fallback behavior)
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
         }
-        
-        // Show success and refresh
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
         
       } else {
         console.error('❌ Delete failed:', result.message);

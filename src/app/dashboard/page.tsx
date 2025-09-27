@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [hasLoadedFromDatabase, setHasLoadedFromDatabase] = useState(false);
   const [apiCallSessions, setApiCallSessions] = useState<VapiCallSession[]>([]);
   const [apiAppointmentRequests, setApiAppointmentRequests] = useState<AppointmentRequest[]>([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -43,9 +44,11 @@ export default function DashboardPage() {
     }
   }, [session, status, router]);
 
-  // Get real call sessions (fallback to in-memory, prefer API data)
+  // Always prefer database data over in-memory data
+  // Only use in-memory as fallback if we haven't loaded from database yet
   const memoryCallSessions = getAllCallSessions();
-  const allCallSessions = apiCallSessions.length > 0 ? apiCallSessions : memoryCallSessions;
+  const allCallSessions = hasLoadedFromDatabase ? apiCallSessions : 
+    (apiCallSessions.length > 0 ? apiCallSessions : memoryCallSessions);
   
   // Load calls from database (webhooks automatically populate the database)
   const loadCallsFromDatabase = async () => {
@@ -59,6 +62,7 @@ export default function DashboardPage() {
         console.log('✅ Loaded calls from database:', result.data.counts);
         setApiCallSessions(result.data.callSessions || []);
         setApiAppointmentRequests(result.data.appointmentRequests || []);
+        setHasLoadedFromDatabase(true);
       } else {
         console.error('❌ Failed to load calls from database:', result.error);
       }
@@ -140,16 +144,8 @@ export default function DashboardPage() {
               <div className="flex items-center">
                 <div className="w-px h-6 bg-gradient-to-b from-blue-500 to-cyan-400 mr-3"></div>
                 <Link href="/" className="text-xl font-normal tracking-tight text-black hover:text-blue-600 transition-colors">
-                  Lighthouse
+                  The Mental Health Hub
                 </Link>
-              </div>
-              <div className="ml-8 flex items-center space-x-6 text-sm text-gray-600">
-                <span className="font-light">{session.user.organization?.name}</span>
-                {session.user.organization?.planType && (
-                  <span className="text-xs uppercase tracking-widest font-light text-gray-500">
-                    {session.user.organization.planType}
-                  </span>
-                )}
               </div>
             </div>
             
@@ -167,7 +163,6 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-left hidden sm:block">
                     <div className="font-normal text-black">{session.user.name}</div>
-                    <div className="text-xs text-gray-500 font-light capitalize">{session.user.role}</div>
                   </div>
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
@@ -181,7 +176,7 @@ export default function DashboardPage() {
                       <div className="font-medium text-gray-900">{session.user.name}</div>
                       <div className="text-sm text-gray-500">{session.user.email}</div>
                       <div className="text-xs text-gray-400 mt-1">
-                        {session.user.organization?.name} • {session.user.role}
+                        {session.user.organization?.name}
                       </div>
                     </div>
                     <div className="py-1">
@@ -207,7 +202,7 @@ export default function DashboardPage() {
                           <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                           </svg>
-                          Billing & Plans
+                          Upgrade Plan
                         </div>
                       </Link>
                       <div className="border-t border-gray-100 my-1"></div>
@@ -242,7 +237,7 @@ export default function DashboardPage() {
               </h1>
               <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
               <p className="text-gray-600 font-light leading-relaxed">
-                {session.user.organization?.name} • {session.user.organization?.planType || 'Trial'} Plan
+                {session.user.organization?.name}
               </p>
             </div>
             
@@ -369,6 +364,11 @@ export default function DashboardPage() {
                         key={callSession.id} 
                         callSession={callSession}
                         showPatientInfo={true}
+                        onDeleteSuccess={(deletedCallId) => {
+                          console.log('Call deleted from dashboard:', deletedCallId);
+                          // Immediately refresh data from database
+                          loadCallsFromDatabase();
+                        }}
                       />
                     ))}
                   </div>

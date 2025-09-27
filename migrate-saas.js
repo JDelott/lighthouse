@@ -4,7 +4,7 @@ const { Pool } = require("pg");
 const pool = new Pool({
   user: process.env.DB_USER || process.env.USER || "jacobdelott",
   host: process.env.DB_HOST || "localhost",
-  database: process.env.DB_NAME || "lighthouse_db",
+  database: process.env.DB_NAME || "mental_health_hub_db",
   password: process.env.DB_PASSWORD || "",
   port: parseInt(process.env.DB_PORT || "5432"),
 });
@@ -158,7 +158,7 @@ async function migrateSaasFeatures() {
       `INSERT INTO users (id, email, name, role, organization_id, is_active, created_at, updated_at) 
        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
        ON CONFLICT (email) DO NOTHING`,
-      [userId, "demo@lighthouse-ai.com", "Demo User", "admin", orgId, true]
+      [userId, "demo@mentalhealthhub.com", "Demo User", "admin", orgId, true]
     );
 
     // Create initial usage tracking
@@ -171,7 +171,7 @@ async function migrateSaasFeatures() {
     );
 
     console.log("✅ SaaS migration completed successfully!");
-    console.log("📧 Demo login: demo@lighthouse-ai.com");
+    console.log("📧 Demo login: demo@mentalhealthhub.com");
     console.log("🏢 Demo organization:", orgId);
     console.log("");
     console.log("🚀 Next steps:");

@@ -1,4 +1,4 @@
--- Lighthouse Psychology SaaS Database Schema
+-- The Mental Health Hub SaaS Database Schema
 
 -- Organizations Table (Multi-tenant support)
 CREATE TABLE organizations (

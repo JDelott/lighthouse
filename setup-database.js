@@ -6,7 +6,7 @@ const path = require("path");
 const pool = new Pool({
   user: process.env.DB_USER || process.env.USER || "jacobdelott",
   host: process.env.DB_HOST || "localhost",
-  database: process.env.DB_NAME || "lighthouse_db",
+  database: process.env.DB_NAME || "mental_health_hub_db",
   password: process.env.DB_PASSWORD || "",
   port: parseInt(process.env.DB_PORT || "5432"),
 });
@@ -15,7 +15,7 @@ async function setupDatabase() {
   const client = await pool.connect();
 
   try {
-    console.log("🚀 Setting up Lighthouse SaaS database...");
+    console.log("🚀 Setting up The Mental Health Hub SaaS database...");
 
     // Read and execute the schema file
     const schemaPath = path.join(__dirname, "schema.sql");
@@ -51,7 +51,7 @@ async function setupDatabase() {
     await client.query(
       `INSERT INTO users (id, email, name, role, organization_id, is_active, created_at, updated_at) 
        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
-      [userId, "demo@lighthouse-ai.com", "Demo User", "admin", orgId, true]
+      [userId, "demo@mentalhealthhub.com", "Demo User", "admin", orgId, true]
     );
 
     // Create initial usage tracking
@@ -63,7 +63,7 @@ async function setupDatabase() {
     );
 
     console.log("✅ Sample data created successfully!");
-    console.log("📧 Demo login: demo@lighthouse-ai.com");
+    console.log("📧 Demo login: demo@mentalhealthhub.com");
     console.log("🏢 Demo organization:", orgId);
   } catch (error) {
     console.error("❌ Error setting up database:", error);

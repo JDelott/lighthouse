@@ -89,7 +89,7 @@ export default function CallSessionPage({ params }: CallSessionPageProps) {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Link href="/dashboard" className="text-2xl font-bold text-gray-900 hover:text-gray-700">
-                Lighthouse AI Assistant
+                The Mental Health Hub
               </Link>
               <span className="ml-3 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
                 HIPAA Compliant

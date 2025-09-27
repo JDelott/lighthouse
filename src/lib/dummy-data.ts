@@ -210,7 +210,7 @@ export const dummyReferrals: Referral[] = [
 export const dummyUsers: User[] = [
   {
     id: 'user-001',
-    email: 'admin@lighthouse.com',
+    email: 'admin@mentalhealthhub.com',
     name: 'Admin User',
     role: 'admin',
     isActive: true,
@@ -220,7 +220,7 @@ export const dummyUsers: User[] = [
   },
   {
     id: 'user-002',
-    email: 'coordinator@lighthouse.com',
+    email: 'coordinator@mentalhealthhub.com',
     name: 'Jane Coordinator',
     role: 'coordinator',
     isActive: true,
@@ -237,7 +237,7 @@ export const dummyAuditLogs: AuditLog[] = [
     entityId: 'ref-001',
     action: 'create',
     userId: 'user-001',
-    userEmail: 'admin@lighthouse.com',
+    userEmail: 'admin@mentalhealthhub.com',
     changes: {
       status: 'pending',
       priority: 'medium'
@@ -252,7 +252,7 @@ export const dummyAuditLogs: AuditLog[] = [
     entityId: 'ref-001',
     action: 'update',
     userId: 'user-002',
-    userEmail: 'coordinator@lighthouse.com',
+    userEmail: 'coordinator@mentalhealthhub.com',
     changes: {
       status: { from: 'pending', to: 'assigned' },
       assignedTo: 'prov-001'
@@ -407,7 +407,7 @@ export const dummyVapiTranscripts: VapiTranscriptEntry[] = [
     id: 'transcript-001-1',
     callSessionId: 'vapi-call-001',
     speaker: 'assistant',
-    text: 'Hello, thank you for calling Lighthouse Psychology. I\'m the scheduling assistant. Dr. Martinez is currently with a client, but I\'m here to help you schedule an appointment. How can I assist you today?',
+    text: 'Hello, thank you for calling The Mental Health Hub. I\'m the scheduling assistant. Dr. Martinez is currently with a client, but I\'m here to help you schedule an appointment. How can I assist you today?',
     timestamp: '2024-01-20T14:30:05Z',
     confidence: 0.98
   },
@@ -452,7 +452,7 @@ export const dummyVapiTranscripts: VapiTranscriptEntry[] = [
     id: 'transcript-002-1',
     callSessionId: 'vapi-call-002',
     speaker: 'assistant',
-    text: 'Hello, thank you for calling Lighthouse Psychology. I\'m the scheduling assistant. How can I help you today?',
+    text: 'Hello, thank you for calling The Mental Health Hub. I\'m the scheduling assistant. How can I help you today?',
     timestamp: '2024-01-21T10:15:05Z',
     confidence: 0.98
   },
@@ -481,7 +481,7 @@ export const dummyVapiTranscripts: VapiTranscriptEntry[] = [
     id: 'transcript-003-1',
     callSessionId: 'vapi-call-003',
     speaker: 'assistant',
-    text: 'Hello, thank you for calling Lighthouse Psychology. How can I assist you today?',
+    text: 'Hello, thank you for calling The Mental Health Hub. How can I assist you today?',
     timestamp: '2024-01-21T16:20:05Z',
     confidence: 0.98
   },

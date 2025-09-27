@@ -8,9 +8,10 @@ import DeleteCallButton from './DeleteCallButton';
 interface CallSessionCardProps {
   callSession: VapiCallSession;
   showPatientInfo?: boolean;
+  onDeleteSuccess?: (callId: string) => void;
 }
 
-export default function CallSessionCard({ callSession, showPatientInfo = true }: CallSessionCardProps) {
+export default function CallSessionCard({ callSession, showPatientInfo = true, onDeleteSuccess }: CallSessionCardProps) {
   const getStatusColor = (status: VapiCallSession['status']) => {
     switch (status) {
       case 'in-progress': return 'bg-blue-100 text-blue-800';
@@ -94,6 +95,10 @@ export default function CallSessionCard({ callSession, showPatientInfo = true }:
             }}
             onDeleteSuccess={(deletedCallId) => {
               console.log('Call deleted:', deletedCallId);
+              // Call parent callback if provided
+              if (onDeleteSuccess) {
+                onDeleteSuccess(deletedCallId);
+              }
             }}
           />
         </div>

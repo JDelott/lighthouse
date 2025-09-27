@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lighthouse AI Assistant - HIPAA Compliant Mental Health Referrals",
+  title: "The Mental Health Hub - HIPAA Compliant Mental Health Referrals",
   description: "Secure, AI-powered platform for managing mental health referrals with HIPAA compliance, encrypted data handling, and comprehensive audit trails.",
 };
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { pool } from '@/lib/database';
+import { removeCallSessionById } from '@/lib/call-processor';
 
 export async function DELETE(
   request: NextRequest,
@@ -82,6 +83,9 @@ export async function DELETE(
       }
       
       console.log('✅ Call deleted successfully:', callId);
+      
+      // Also remove from in-memory storage to keep it synchronized
+      removeCallSessionById(callId);
       
       // Get updated call count
       const countResult = await client.query(

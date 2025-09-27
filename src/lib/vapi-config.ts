@@ -3,11 +3,11 @@ import { VapiAssistantConfig } from './types';
 // Appointment Scheduling AI Assistant Configuration for Vapi
 export const appointmentAssistantConfig: VapiAssistantConfig = {
   id: 'asst_appointment_scheduler',
-  name: 'Lighthouse Appointment Scheduling Assistant',
+  name: 'The Mental Health Hub Appointment Scheduling Assistant',
   
-  firstMessage: `Hello, thank you for calling Lighthouse Psychology. I'm the scheduling assistant. Dr. [Therapist Name] is currently with a client, but I'm here to help you schedule an appointment or answer any questions about our services. How can I assist you today?`,
+  firstMessage: `Hello, thank you for calling The Mental Health Hub. I'm the scheduling assistant. Dr. [Therapist Name] is currently with a client, but I'm here to help you schedule an appointment or answer any questions about our services. How can I assist you today?`,
   
-  systemPrompt: `You are a professional AI scheduling and intake assistant for Lighthouse Psychology, a private practice mental health clinic. Your role is to:
+  systemPrompt: `You are a professional AI scheduling and intake assistant for The Mental Health Hub, a private practice mental health clinic. Your role is to:
 
 **PRIMARY RESPONSIBILITIES:**
 - Help clients schedule appointments when the therapist is unavailable
@@ -79,7 +79,7 @@ export const appointmentAssistantConfig: VapiAssistantConfig = {
 - Provide next steps and preparation instructions
 - Give office contact information
 - Remind about cancellation policy
-- Thank them for choosing Lighthouse Psychology
+- Thank them for choosing The Mental Health Hub
 
 **CRISIS PROTOCOL:**
 If someone mentions suicide, self-harm, or immediate danger:
@@ -105,7 +105,7 @@ Remember: Your goal is to make the appointment scheduling process smooth and wel
   },
   
   recordingEnabled: true,
-  endCallMessage: "Thank you for calling Lighthouse Mental Health Support. Remember, you're not alone, and help is always available. Take care of yourself.",
+  endCallMessage: "Thank you for calling The Mental Health Hub. Remember, you're not alone, and help is always available. Take care of yourself.",
   maxDurationSeconds: 1800, // 30 minutes max
   silenceTimeoutSeconds: 30,
   responseDelaySeconds: 1

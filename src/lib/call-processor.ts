@@ -428,6 +428,16 @@ export function getCallSessionById(id: string): VapiCallSession | undefined {
   return realCallSessions.find(session => session.id === id);
 }
 
+export function removeCallSessionById(id: string): boolean {
+  const initialLength = realCallSessions.length;
+  realCallSessions = realCallSessions.filter(session => session.id !== id);
+  const removed = realCallSessions.length < initialLength;
+  if (removed) {
+    console.log('🗑️ Removed call from in-memory storage:', id);
+  }
+  return removed;
+}
+
 export function getTranscriptsByCallId(callSessionId: string): VapiTranscriptEntry[] {
   return realTranscripts.filter(entry => entry.callSessionId === callSessionId);
 }

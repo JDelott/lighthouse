@@ -1,8 +1,8 @@
-# Lighthouse AI Assistant - SaaS Platform
+# The Mental Health Hub - SaaS Platform
 
 ## 🚀 SaaS Transformation Complete!
 
-Your Lighthouse AI Assistant has been transformed into a full SaaS platform with user authentication, pricing tiers, and multi-tenant functionality.
+Your Mental Health Hub has been transformed into a full SaaS platform with user authentication, pricing tiers, and multi-tenant functionality.
 
 ## ✨ New Features Added
 
@@ -157,7 +157,7 @@ The platform is prepared for Stripe integration:
 ## 🎉 Demo Account
 
 A demo account has been created for testing:
-- **Email**: demo@lighthouse-ai.com
+- **Email**: demo@mentalhealthhub.com
 - **Organization**: Demo Practice
 - **Plan**: Trial (14 days)
 

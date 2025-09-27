@@ -1,10 +1,10 @@
-# Lighthouse Psychology - AI Appointment Scheduling Setup
+# The Mental Health Hub - AI Appointment Scheduling Setup
 
 This document provides instructions for setting up the Vapi AI integration for appointment scheduling and intake management.
 
 ## Overview
 
-The Lighthouse Psychology platform now includes:
+The Mental Health Hub platform now includes:
 - 24/7 AI-powered appointment scheduling assistant
 - Automated intake questionnaire completion during calls
 - Real-time conversation transcription and client information capture
@@ -34,7 +34,7 @@ NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your_nextauth_secret_here
 
 # Database Configuration (for future use)
-DATABASE_URL=postgresql://username:password@localhost:5432/lighthouse
+DATABASE_URL=postgresql://username:password@localhost:5432/mental_health_hub
 
 # Application Configuration
 APP_ENV=development
@@ -56,8 +56,8 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
 ```json
 {
-  "name": "Lighthouse Mental Health Support Assistant",
-  "firstMessage": "Hello, this is the Lighthouse Mental Health Support line. I'm here to provide a safe, confidential space to talk about what's on your mind. How can I support you today?",
+  "name": "The Mental Health Hub Support Assistant",
+  "firstMessage": "Hello, this is The Mental Health Hub support line. I'm here to provide a safe, confidential space to talk about what's on your mind. How can I support you today?",
   "model": {
     "provider": "openai",
     "model": "gpt-4",
@@ -75,7 +75,7 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
   "recordingEnabled": true,
   "maxDurationSeconds": 1800,
   "silenceTimeoutSeconds": 30,
-  "endCallMessage": "Thank you for calling Lighthouse Mental Health Support. Remember, you're not alone, and help is always available. Take care of yourself."
+  "endCallMessage": "Thank you for calling The Mental Health Hub. Remember, you're not alone, and help is always available. Take care of yourself."
 }
 ```
 
