@@ -18,6 +18,8 @@ export default function CalendarPage() {
   const [pendingCount, setPendingCount] = useState(0);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedDateTotal, setSelectedDateTotal] = useState(0);
+  const [confirmedAppointments, setConfirmedAppointments] = useState<any[]>([]);
+  const [showConfirmedDropdown, setShowConfirmedDropdown] = useState(false);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -127,6 +129,10 @@ export default function CalendarPage() {
         const scheduled = requests.filter((req: any) => 
           req.status === 'follow_up_scheduled' || req.status === 'appointment_booked'
         ).length;
+        
+        // Extract confirmed appointments for quick view
+        const confirmed = requests.filter((req: any) => req.status === 'appointment_booked');
+        setConfirmedAppointments(confirmed);
         setPendingCount(pending);
         console.log('✅ Loaded appointment requests:', {
           total: requests.length,
@@ -311,11 +317,46 @@ export default function CalendarPage() {
                 <div className="text-lg font-bold text-orange-600">{pendingCount}</div>
                 <div className="text-xs text-orange-700">Total Pending Follow-ups</div>
               </div>
-              <div className="text-center p-2 bg-blue-50 rounded border border-blue-100">
-                <div className="text-lg font-bold text-blue-600">
-                  {appointmentRequests.filter(req => req.status === 'follow_up_scheduled' || req.status === 'appointment_booked').length}
+              <div className="relative">
+                <div 
+                  className="text-center p-2 bg-blue-50 rounded border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors"
+                  onClick={() => setShowConfirmedDropdown(!showConfirmedDropdown)}
+                >
+                  <div className="text-lg font-bold text-blue-600">
+                    {appointmentRequests.filter(req => req.status === 'follow_up_scheduled' || req.status === 'appointment_booked').length}
+                  </div>
+                  <div className="text-xs text-blue-700 flex items-center justify-center">
+                    Total Scheduled
+                    <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
-                <div className="text-xs text-blue-700">Total Scheduled</div>
+                
+                {/* Confirmed Appointments Dropdown */}
+                {showConfirmedDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                    <div className="p-3">
+                      <div className="text-xs font-medium text-gray-600 mb-2">Confirmed Appointments</div>
+                      {confirmedAppointments.length > 0 ? (
+                        <div className="space-y-2">
+                          {confirmedAppointments.map((appt, index) => (
+                            <div key={appt.id} className="text-xs p-2 bg-green-50 rounded border-l-2 border-green-400">
+                              <div className="font-medium text-green-800">
+                                {appt.clientInfo?.fullName || 'Client'}
+                              </div>
+                              <div className="text-green-600">
+                                {appt.appointmentDetails?.preferredDates?.[0]} at {appt.appointmentDetails?.preferredTimes?.[0]}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500 italic">No confirmed appointments yet</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="text-center p-2 bg-green-50 rounded border border-green-100">
                 <div className="text-lg font-bold text-green-600">

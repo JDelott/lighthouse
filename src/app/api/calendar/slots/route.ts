@@ -142,8 +142,28 @@ export async function GET(request: NextRequest) {
       isBooked: false
     }));
 
-    // Combine and sort all slots by time
-    const allSlots = [...availableSlotsWithStatus, ...bookedSlots, ...pendingSlots].sort((a, b) => {
+    // Combine all slots and remove duplicates based on startTime and therapistId
+    const combinedSlots = [...availableSlotsWithStatus, ...bookedSlots, ...pendingSlots];
+    
+    // Deduplicate slots - prefer booked/pending over available for same time slot
+    const slotMap = new Map();
+    combinedSlots.forEach(slot => {
+      const key = `${slot.therapistId}-${slot.startTime}`;
+      const existing = slotMap.get(key);
+      
+      if (!existing) {
+        slotMap.set(key, slot);
+      } else {
+        // Prefer booked/pending slots over available slots
+        if (slot.isBooked && !existing.isBooked) {
+          slotMap.set(key, slot);
+        }
+        // If both are booked, keep the first one (avoid duplicates)
+      }
+    });
+    
+    // Convert back to array and sort
+    const allSlots = Array.from(slotMap.values()).sort((a, b) => {
       return a.startTime.localeCompare(b.startTime);
     });
 

@@ -246,8 +246,10 @@ export default function SimpleCalendar({
                   key={`${slot.therapistId}-${slot.startTime}-${index}`}
                   className={`flex items-center justify-between p-4 border rounded-lg transition-all ${
                     isBooked 
-                      ? 'border-gray-300 bg-gray-50' 
-                      : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'
+                      ? (slot as any).status === 'appointment_booked'
+                        ? 'border-green-300 bg-green-50 shadow-sm ring-1 ring-green-200' // Confirmed - green accent
+                        : 'border-gray-300 bg-gray-50' // Pending
+                      : 'border-gray-200 hover:border-blue-300 hover:shadow-sm' // Available
                   }`}
                 >
                   <div className="flex-1">
