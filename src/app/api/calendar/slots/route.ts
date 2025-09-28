@@ -118,8 +118,12 @@ export async function GET(request: NextRequest) {
       });
     });
 
+    // Filter out available slots that conflict with pending appointment requests
+    const pendingTimes = new Set(pendingSlots.map(slot => slot.startTime));
+    const availableSlotsFiltered = availableSlots.filter(slot => !pendingTimes.has(slot.startTime));
+    
     // Mark available slots as not booked
-    const availableSlotsWithStatus = availableSlots.map(slot => ({
+    const availableSlotsWithStatus = availableSlotsFiltered.map(slot => ({
       ...slot,
       isBooked: false
     }));
