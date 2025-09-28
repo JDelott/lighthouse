@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { config, formatPhoneForDisplay, getPhoneLink } from '@/lib/config';
+import { config, getPhoneLink } from '@/lib/config';
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -69,48 +69,19 @@ export default function Home() {
                 </h1>
                 <div className="w-32 h-px bg-gradient-to-r from-blue-500 to-cyan-400 mx-auto"></div>
                 <p className="text-xl text-gray-600 font-light leading-relaxed max-w-2xl mx-auto">
-                  AI assistant handles patient calls, scheduling, and intake interviews 24/7 while you focus on providing care.
+                  <span className="text-slate-700 font-medium">AI assistant</span> handles patient calls, scheduling, and intake interviews <span className="text-cyan-600 font-medium">24/7</span> while you focus on providing care.
                 </p>
               </div>
               
-              <div className="flex flex-col sm:flex-row items-center justify-center space-y-8 sm:space-y-0 sm:space-x-16">
-                <div className="flex items-center space-x-6">
-                  {session ? (
-                    <>
-                      <Link
-                        href="/dashboard"
-                        className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-8 py-3 text-sm font-normal tracking-wide hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"
-                      >
-                        Dashboard
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      <Link
-                        href="/auth/signup"
-                        className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-8 py-3 text-sm font-normal tracking-wide hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"
-                      >
-                        Start Trial
-                      </Link>
-                    </>
-                  )}
-                </div>
-                
-                {/* Integrated Demo Line */}
-                <div className="flex items-center space-x-4">
-                  <div className="w-3 h-3 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full animate-pulse"></div>
-                  <div className="space-y-1 text-center sm:text-left">
-                    <p className="text-xs text-gray-500 font-light uppercase tracking-widest">
-                      Demo Line
-                    </p>
-                    <a 
-                      href={`tel:${getPhoneLink(config.vapi.phoneNumber)}`}
-                      className="block text-lg font-light text-black hover:text-blue-600 transition-colors tracking-wide"
-                    >
-                      {formatPhoneForDisplay(config.vapi.phoneNumber)}
-                    </a>
-                  </div>
-                </div>
+              <div className="flex justify-center">
+                {!session && (
+                  <Link
+                    href="/auth/signup"
+                    className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-8 py-3 text-sm font-normal tracking-wide hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"
+                  >
+                    Start Trial
+                  </Link>
+                )}
               </div>
             </div>
           </div>
