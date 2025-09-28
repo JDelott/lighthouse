@@ -318,3 +318,51 @@ export interface VapiAssistantConfig {
   silenceTimeoutSeconds?: number;
   responseDelaySeconds?: number;
 }
+
+// Calendar System Types
+export interface Therapist {
+  id: string;
+  organizationId: string;
+  name: string;
+  email?: string;
+  isActive: boolean;
+  workingHours: {
+    monday: { start: string; end: string; enabled: boolean };
+    tuesday: { start: string; end: string; enabled: boolean };
+    wednesday: { start: string; end: string; enabled: boolean };
+    thursday: { start: string; end: string; enabled: boolean };
+    friday: { start: string; end: string; enabled: boolean };
+    saturday: { start: string; end: string; enabled: boolean };
+    sunday: { start: string; end: string; enabled: boolean };
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Appointment {
+  id: string;
+  organizationId: string;
+  appointmentRequestId?: string;
+  therapistId: string;
+  clientName: string;
+  clientPhone: string;
+  clientEmail?: string;
+  appointmentType: string;
+  appointmentDate: string; // YYYY-MM-DD
+  startTime: string; // HH:MM
+  endTime: string; // HH:MM
+  durationMinutes: number;
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AvailableSlot {
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:MM
+  endTime: string; // HH:MM
+  therapistId: string;
+  therapistName: string;
+  durationMinutes: number;
+}
