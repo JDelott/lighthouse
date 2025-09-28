@@ -98,8 +98,6 @@ export default function DashboardPage() {
     completed: allCallSessions.filter(session => session.status === 'completed').length,
     inProgress: allCallSessions.filter(session => session.status === 'in-progress').length,
     appointmentRequests: allCallSessions.filter(session => session.callType === 'appointment_request').length,
-    pendingScheduling: allCallSessions.filter(session => session.metadata?.schedulingStatus === 'pending_confirmation').length,
-    urgentRequests: allCallSessions.filter(session => session.metadata?.urgencyLevel && session.metadata.urgencyLevel >= 4).length,
   };
 
   // Show recent real call sessions only
@@ -175,37 +173,8 @@ export default function DashboardPage() {
                     <div className="p-3 border-b border-gray-100">
                       <div className="font-medium text-gray-900">{session.user.name}</div>
                       <div className="text-sm text-gray-500">{session.user.email}</div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        {session.user.organization?.name}
-                      </div>
                     </div>
                     <div className="py-1">
-                      <Link
-                        href="/settings"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <div className="flex items-center">
-                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          Account Settings
-                        </div>
-                      </Link>
-                      <Link
-                        href="/pricing"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <div className="flex items-center">
-                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                          </svg>
-                          Upgrade Plan
-                        </div>
-                      </Link>
-                      <div className="border-t border-gray-100 my-1"></div>
                       <button
                         onClick={handleSignOut}
                         className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
@@ -230,32 +199,11 @@ export default function DashboardPage() {
         
         {/* Header Section */}
         <div className="mb-12">
-          <div className="flex items-start justify-between">
-            <div className="space-y-4">
-              <h1 className="text-4xl font-light text-black leading-tight">
-                Welcome back, {session.user.name?.split(' ')[0]}
-              </h1>
-              <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
-              <p className="text-gray-600 font-light leading-relaxed">
-                {session.user.organization?.name}
-              </p>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <RefreshButton 
-                onRefresh={() => loadCallsFromDatabase()}
-                syncFromVapi={true}
-                className="bg-white border border-gray-200 hover:border-blue-500"
-              />
-              {session.user.organization?.planType === 'trial' && (
-                <Link 
-                  href="/pricing" 
-                  className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-6 py-2 text-sm font-normal tracking-wide hover:from-blue-600 hover:to-cyan-500 transition-all duration-200 rounded-lg"
-                >
-                  Upgrade Plan
-                </Link>
-              )}
-            </div>
+          <div className="space-y-4">
+            <h1 className="text-4xl font-light text-black leading-tight">
+              Welcome back, {session.user.name?.split(' ')[0]}
+            </h1>
+            <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
           </div>
         </div>
 
@@ -270,57 +218,35 @@ export default function DashboardPage() {
               <h3 className="text-lg font-medium text-black mb-6">Call Overview</h3>
               <div className="grid grid-cols-2 gap-6">
                 <div className="text-center">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <div className="w-3 h-3 bg-white/40 rounded-full"></div>
-                  </div>
                   <p className="text-2xl font-light text-black">{callSessionCounts.total}</p>
                   <p className="text-xs uppercase tracking-wide text-gray-500">Total Calls</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <div className="w-3 h-3 bg-white/40 rounded-full"></div>
-                  </div>
                   <p className="text-2xl font-light text-black">{callSessionCounts.appointmentRequests}</p>
                   <p className="text-xs uppercase tracking-wide text-gray-500">Appointments</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <div className="w-3 h-3 bg-white/40 rounded-full"></div>
-                  </div>
-                  <p className="text-2xl font-light text-black">{callSessionCounts.pendingScheduling}</p>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Pending</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full mx-auto mb-3 flex items-center justify-center">
-                    <div className="w-3 h-3 bg-white/40 rounded-full"></div>
-                  </div>
-                  <p className="text-2xl font-light text-black">{callSessionCounts.urgentRequests}</p>
-                  <p className="text-xs uppercase tracking-wide text-gray-500">Urgent</p>
                 </div>
               </div>
             </div>
 
-            {/* Trial Usage Card */}
-            {session.user.organization?.planType === 'trial' && (
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
-                <h3 className="text-lg font-medium text-black mb-4">Trial Usage</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Calls this month</span>
-                    <span className="font-medium text-black">{callSessionCounts.total} / 50</span>
-                  </div>
-                  <div className="w-full bg-blue-200 h-2 rounded-full">
-                    <div 
-                      className="bg-gradient-to-r from-blue-500 to-cyan-400 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${Math.min((callSessionCounts.total / 50) * 100, 100)}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-600">
-                    {50 - callSessionCounts.total} calls remaining in your trial
-                  </p>
+            {/* Monthly Usage Card */}
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
+              <h3 className="text-lg font-medium text-black mb-4">Calls This Month</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Total calls</span>
+                  <span className="font-medium text-black">{callSessionCounts.total}</span>
                 </div>
+                <div className="w-full bg-blue-200 h-2 rounded-full">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-cyan-400 h-2 rounded-full transition-all duration-300" 
+                    style={{ width: `${Math.min((callSessionCounts.total / 50) * 100, 100)}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-600">
+                  Monthly activity overview
+                </p>
               </div>
-            )}
+            </div>
 
             {/* Contact Info Card */}
             <div className="bg-gray-50 border border-gray-100 rounded-lg p-6">
@@ -350,8 +276,15 @@ export default function DashboardPage() {
                     <h2 className="text-xl font-medium text-black">Recent Calls</h2>
                     <p className="text-sm text-gray-600 mt-1">AI appointment scheduling and patient interactions</p>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {callSessionCounts.total} total calls
+                  <div className="flex items-center space-x-3">
+                    <div className="text-sm text-gray-500">
+                      {callSessionCounts.total} total calls
+                    </div>
+                    <RefreshButton 
+                      onRefresh={() => loadCallsFromDatabase()}
+                      syncFromVapi={true}
+                      className="bg-white border border-gray-200 hover:border-blue-500"
+                    />
                   </div>
                 </div>
               </div>

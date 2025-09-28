@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession, signOut } from 'next-auth/react';
 import { VapiCallSession, VapiTranscriptEntry, TherapistNote } from '@/lib/types';
 import TranscriptViewer from '../../components/TranscriptViewer';
 import { formatDuration, formatPhoneNumber, formatRelativeTime } from '@/lib/utils';
@@ -11,10 +12,27 @@ interface CallSessionPageProps {
 }
 
 export default function CallSessionPage({ params }: CallSessionPageProps) {
+  const { data: session } = useSession();
   const [callSession, setCallSession] = useState<VapiCallSession | null>(null);
   const [transcripts, setTranscripts] = useState<VapiTranscriptEntry[]>([]);
   const [therapistNotes, setTherapistNotes] = useState<TherapistNote[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.user-menu-container')) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showUserMenu]);
 
   useEffect(() => {
     async function fetchCallData() {
@@ -37,6 +55,10 @@ export default function CallSessionPage({ params }: CallSessionPageProps) {
     
     fetchCallData();
   }, [params]);
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: '/' });
+  };
 
   if (loading) {
     return (
@@ -69,73 +91,150 @@ export default function CallSessionPage({ params }: CallSessionPageProps) {
     );
   }
 
-  const getStatusColor = (status: VapiCallSession['status']) => {
-    switch (status) {
-      case 'in-progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      case 'cancelled': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+  // Extract client name from summary or metadata
+  const getClientName = () => {
+    // First check metadata
+    if (callSession.metadata?.clientName) {
+      return callSession.metadata.clientName;
     }
-  };
-
-  const getUrgencyColor = (level?: number) => {
-    if (!level) return 'bg-gray-500';
-    if (level >= 8) return 'bg-red-500';
-    if (level >= 6) return 'bg-orange-500';
-    if (level >= 4) return 'bg-yellow-500';
-    return 'bg-green-500';
+    
+    // Extract from summary if available
+    if (callSession.summary) {
+      // Common patterns for name extraction from AI-generated summaries
+      const patterns = [
+        // "Jacob Delott called Nick Sundstrom's AI assistant" - matches your example
+        /^([A-Z][a-z]+\s+[A-Z][a-z]+)\s+called/i,
+        // "John Smith scheduled" or "Jane Doe requested"
+        /^([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(scheduled|requested|contacted)/i,
+        // More flexible pattern for names at the beginning
+        /^([A-Z][a-z]+\s+[A-Z][a-z]+)[\s,]/
+      ];
+      
+      for (const pattern of patterns) {
+        const match = callSession.summary.match(pattern);
+        if (match && match[1]) {
+          const name = match[1].trim();
+          // Basic validation - should be 2-4 words, each starting with capital
+          const words = name.split(/\s+/);
+          if (words.length >= 2 && words.length <= 4 && 
+              words.every(word => /^[A-Z][a-z]+$/.test(word))) {
+            return name;
+          }
+        }
+      }
+    }
+    
+    return 'Anonymous Caller';
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      {/* Real Header - Same as Dashboard */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-8">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center">
-              <Link href="/dashboard" className="text-2xl font-bold text-gray-900 hover:text-gray-700">
-                The Mental Health Hub
-              </Link>
-              <span className="ml-3 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
-                HIPAA Compliant
-              </span>
+              <div className="flex items-center">
+                <div className="w-px h-6 bg-gradient-to-b from-blue-500 to-cyan-400 mr-3"></div>
+                <Link href="/dashboard" className="text-xl font-normal tracking-tight text-black hover:text-blue-600 transition-colors">
+                  The Mental Health Hub
+                </Link>
+              </div>
             </div>
+            
             <div className="flex items-center space-x-4">
-              <Link
-                href="/dashboard"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                ← Back to Dashboard
-              </Link>
+              {/* User Menu */}
+              {session && (
+                <div className="relative user-menu-container">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center space-x-3 text-sm bg-white border border-gray-200 px-4 py-2 hover:border-blue-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-full flex items-center justify-center">
+                      <span className="text-white font-light text-sm">
+                        {session.user.name?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="text-left hidden sm:block">
+                      <div className="font-normal text-black">{session.user.name}</div>
+                    </div>
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                      <div className="p-3 border-b border-gray-100">
+                        <div className="font-medium text-gray-900">{session.user.name}</div>
+                        <div className="text-sm text-gray-500">{session.user.email}</div>
+                      </div>
+                      <div className="py-1">
+                        <button
+                          onClick={handleSignOut}
+                          className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                        >
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Sign Out
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Call Session Overview */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex justify-between items-start mb-6">
+      <main className="max-w-7xl mx-auto px-8 py-12">
+        {/* Back to Dashboard Button */}
+        <div className="mb-6">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Dashboard
+          </Link>
+        </div>
+
+        {/* Simplified Call Overview */}
+        <div className="bg-white border border-gray-100 rounded-lg p-6 mb-8">
+          <div className="flex justify-between items-start mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                Call Session Details
+              <h1 className="text-2xl font-light text-black mb-2">
+                {getClientName()}
               </h1>
               <p className="text-gray-600">
-                {callSession.metadata?.clientName || 'Anonymous Caller'} • {formatPhoneNumber(callSession.clientPhone)}
+                {formatPhoneNumber(callSession.clientPhone)} • {new Date(callSession.startedAt).toLocaleDateString()} at {new Date(callSession.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
+              {callSession.duration && (
+                <p className="text-sm text-gray-500">
+                  Duration: {formatDuration(callSession.duration)}
+                </p>
+              )}
             </div>
-            <div className="flex items-center space-x-3">
-              <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(callSession.status)}`}>
-                {callSession.status}
-              </span>
-              {callSession.metadata?.urgencyLevel && (
-                <div className="flex items-center">
-                  <div className={`w-3 h-3 rounded-full mr-2 ${getUrgencyColor(callSession.metadata.urgencyLevel)}`}></div>
-                  <span className="text-sm text-gray-600">
-                    Urgency: {callSession.metadata.urgencyLevel}/10
-                  </span>
-                </div>
+            <div className="flex items-center space-x-2">
+              {callSession.recordingUrl && (
+                <a
+                  href={callSession.recordingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-3 py-2 text-sm text-blue-600 hover:text-blue-700 border border-blue-300 rounded-md hover:bg-blue-50"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M8.464 8.464L4 12l4.464 4.464" />
+                  </svg>
+                  Listen
+                </a>
               )}
             </div>
           </div>
@@ -143,130 +242,19 @@ export default function CallSessionPage({ params }: CallSessionPageProps) {
           {/* Call Summary */}
           {callSession.summary && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Summary</h3>
+              <h3 className="text-lg font-medium text-black mb-2">Summary</h3>
               <p className="text-gray-700 leading-relaxed">{callSession.summary}</p>
-            </div>
-          )}
-
-          {/* Call Metadata */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Call Details</h4>
-              <div className="space-y-1 text-sm">
-                <p><span className="font-medium">Started:</span> {new Date(callSession.startedAt).toLocaleString()}</p>
-                {callSession.endedAt && (
-                  <p><span className="font-medium">Ended:</span> {new Date(callSession.endedAt).toLocaleString()}</p>
-                )}
-                {callSession.duration && (
-                  <p><span className="font-medium">Duration:</span> {formatDuration(callSession.duration)}</p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Assessment</h4>
-              <div className="space-y-1 text-sm">
-                <p><span className="font-medium">Follow-up Required:</span> {callSession.metadata?.followUpRequired ? 'Yes' : 'No'}</p>
-                <p><span className="font-medium">Intake Completed:</span> {callSession.metadata?.intakeCompleted ? 'Yes' : 'No'}</p>
-                <p><span className="font-medium">Insurance Verified:</span> {callSession.metadata?.insuranceVerified ? 'Yes' : 'No'}</p>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Actions</h4>
-              <div className="space-y-2">
-                {callSession.recordingUrl && (
-                  <a
-                    href={callSession.recordingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700"
-                  >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M8.464 8.464L4 12l4.464 4.464" />
-                    </svg>
-                    Listen to Recording
-                  </a>
-                )}
-                <div>
-                  <Link
-                    href={`/calls/${callSession.id}/notes`}
-                    className="inline-flex items-center text-sm text-green-600 hover:text-green-700"
-                  >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    Add Therapist Note
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Key Topics */}
-          {callSession.metadata?.keyTopics && callSession.metadata.keyTopics.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Key Topics Discussed</h4>
-              <div className="flex flex-wrap gap-2">
-                {callSession.metadata.keyTopics.map((topic, index) => (
-                  <span 
-                    key={index}
-                    className="inline-flex px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full"
-                  >
-                    {topic}
-                  </span>
-                ))}
-              </div>
             </div>
           )}
         </div>
 
-        {/* Therapist Notes */}
-        {therapistNotes.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Therapist Notes</h2>
-            <div className="space-y-4">
-              {therapistNotes.map((note) => (
-                <div key={note.id} className="border-l-4 border-blue-500 pl-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium text-gray-900">Note by Therapist</h3>
-                    <span className="text-sm text-gray-500">
-                      {formatRelativeTime(note.createdAt)}
-                    </span>
-                  </div>
-                  <p className="text-gray-700 mb-2">{note.note}</p>
-                  {note.actionItems && note.actionItems.length > 0 && (
-                    <div className="mb-2">
-                      <h4 className="text-sm font-medium text-gray-900 mb-1">Action Items:</h4>
-                      <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                        {note.actionItems.map((item, index) => (
-                          <li key={index}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {note.tags && note.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {note.tags.map((tag, index) => (
-                        <span key={index} className="inline-flex px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Transcript */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white border border-gray-100 rounded-lg p-6">
           <TranscriptViewer 
             transcripts={transcripts}
-            showTimestamps={true}
-            showConfidence={true}
-            showEmotions={true}
+            showTimestamps={false}
+            showConfidence={false}
+            showEmotions={false}
           />
         </div>
       </main>

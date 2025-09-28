@@ -22,9 +22,6 @@ export default function Home() {
             <div className="flex items-center space-x-8">
               {session ? (
                 <div className="flex items-center space-x-6">
-                  <span className="text-sm text-gray-600 font-light">
-                    {session.user.organization?.name}
-                  </span>
                   <Link
                     href="/dashboard"
                     className="bg-gradient-to-r from-blue-500 to-cyan-400 text-white px-6 py-2 text-sm font-normal tracking-wide hover:from-blue-600 hover:to-cyan-500 transition-all duration-200"

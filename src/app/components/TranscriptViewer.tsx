@@ -143,40 +143,6 @@ export default function TranscriptViewer({
           </div>
         ))}
       </div>
-
-      {/* Transcript Statistics */}
-      <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-        <h4 className="text-sm font-semibold text-gray-900 mb-2">Transcript Statistics</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">Total Messages:</span>
-            <span className="ml-2 font-medium">{transcripts.length}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Client Messages:</span>
-            <span className="ml-2 font-medium">
-              {transcripts.filter(t => t.speaker === 'user').length}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-600">AI Responses:</span>
-            <span className="ml-2 font-medium">
-              {transcripts.filter(t => t.speaker === 'assistant').length}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-600">Avg. Confidence:</span>
-            <span className="ml-2 font-medium">
-              {Math.round(
-                transcripts
-                  .filter(t => t.confidence)
-                  .reduce((sum, t) => sum + (t.confidence || 0), 0) / 
-                transcripts.filter(t => t.confidence).length * 100
-              )}%
-            </span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

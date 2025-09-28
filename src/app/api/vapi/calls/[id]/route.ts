@@ -3,6 +3,66 @@ import {
   getCallSessionById, 
   getTranscriptsByCallId
 } from '@/lib/database';
+import { VapiTranscriptEntry } from '@/lib/types';
+
+// Parse transcript text into conversation turns
+function parseTranscriptIntoTurns(transcript: string, callSessionId: string): VapiTranscriptEntry[] {
+  const turns: VapiTranscriptEntry[] = [];
+  
+  // Split by common patterns that indicate speaker changes
+  const segments = transcript.split(/(?:AI:|User:|Assistant:|Caller:)/i).filter(segment => segment.trim());
+  
+  // More sophisticated parsing - look for "AI:" and "User:" patterns
+  const lines = transcript.split(/\n|\. (?=(?:AI|User|Assistant|Caller):)/i);
+  let currentSpeaker: 'assistant' | 'user' = 'assistant';
+  let turnIndex = 0;
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (!trimmedLine) continue;
+    
+    // Check if line starts with speaker indicator
+    if (trimmedLine.match(/^(AI|Assistant):/i)) {
+      currentSpeaker = 'assistant';
+      const text = trimmedLine.replace(/^(AI|Assistant):\s*/i, '').trim();
+      if (text) {
+        turns.push({
+          id: `transcript-${callSessionId}-${turnIndex++}`,
+          callSessionId,
+          speaker: currentSpeaker,
+          text,
+          timestamp: new Date().toISOString(),
+          confidence: 1.0
+        });
+      }
+    } else if (trimmedLine.match(/^(User|Caller):/i)) {
+      currentSpeaker = 'user';
+      const text = trimmedLine.replace(/^(User|Caller):\s*/i, '').trim();
+      if (text) {
+        turns.push({
+          id: `transcript-${callSessionId}-${turnIndex++}`,
+          callSessionId,
+          speaker: currentSpeaker,
+          text,
+          timestamp: new Date().toISOString(),
+          confidence: 1.0
+        });
+      }
+    } else if (trimmedLine.length > 0) {
+      // Continue with current speaker if no explicit indicator
+      turns.push({
+        id: `transcript-${callSessionId}-${turnIndex++}`,
+        callSessionId,
+        speaker: currentSpeaker,
+        text: trimmedLine,
+        timestamp: new Date().toISOString(),
+        confidence: 1.0
+      });
+    }
+  }
+  
+  return turns;
+}
 
 // GET /api/vapi/calls/[id] - Get specific call session with transcripts and notes
 export async function GET(
@@ -28,16 +88,9 @@ export async function GET(
     // Get transcripts from database
     let transcripts = await getTranscriptsByCallId(id);
     
-    // If no separate transcript entries but call has transcript text, create a single entry
+    // If no separate transcript entries but call has transcript text, parse it into turns
     if (transcripts.length === 0 && callSession.transcript) {
-      transcripts = [{
-        id: `transcript-${id}-full`,
-        callSessionId: id,
-        speaker: 'user', // Default to user, or we could parse this
-        text: callSession.transcript,
-        timestamp: callSession.startedAt,
-        confidence: 1.0
-      }];
+      transcripts = parseTranscriptIntoTurns(callSession.transcript, id);
     }
 
     return NextResponse.json({
