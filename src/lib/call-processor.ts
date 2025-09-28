@@ -220,10 +220,56 @@ export async function parseAppointmentDetails(transcript: string): Promise<Parti
   }
 }
 
+// Helper function to extract client name from transcript (same as in vapi-api.ts)
+function extractClientNameFromTranscript(transcript?: string): string | undefined {
+  if (!transcript) return undefined;
+  
+  // Common patterns for name extraction from therapy appointment calls
+  const patterns = [
+    // "Hi, my name is John Smith" or "My name is Jane Doe"
+    /(?:hi|hello),?\s*(?:my\s+name\s+is|i'm|i\s+am)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i,
+    // "This is John Smith calling" or "John Smith here"
+    /(?:this\s+is|it's)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)(?:\s+calling|\s+here)?/i,
+    // "I'm calling for John Smith" or direct name mention
+    /(?:i'm\s+calling\s+for|calling\s+for|my\s+name\s+is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i,
+    // "Jacob Bilott" at the start of a sentence (as in the example)
+    /^([A-Z][a-z]+\s+[A-Z][a-z]+),?\s+(?:a\s+new\s+client|called|is\s+calling)/i,
+    // Name followed by common appointment phrases
+    /([A-Z][a-z]+\s+[A-Z][a-z]+)(?:,\s*(?:a\s+new\s+client|called|is\s+calling|wants\s+to\s+schedule))/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = transcript.match(pattern);
+    if (match && match[1]) {
+      const name = match[1].trim();
+      // Basic validation - should be 2-4 words, each starting with capital
+      const words = name.split(/\s+/);
+      if (words.length >= 2 && words.length <= 4 && 
+          words.every(word => /^[A-Z][a-z]+$/.test(word))) {
+        return name;
+      }
+    }
+  }
+  
+  return undefined;
+}
+
 // Process completed call and generate therapist materials
 export async function processCompletedCall(callSession: VapiCallSession): Promise<void> {
   try {
     console.log('Processing completed call:', callSession.id);
+    
+    // 0. Extract client name if not already set
+    if (!callSession.metadata?.clientName && callSession.transcript) {
+      const extractedName = extractClientNameFromTranscript(callSession.transcript);
+      if (extractedName) {
+        if (!callSession.metadata) {
+          callSession.metadata = {};
+        }
+        callSession.metadata.clientName = extractedName;
+        console.log('✅ Extracted client name:', extractedName);
+      }
+    }
     
     // 1. Generate AI summary for therapist
     if (callSession.transcript) {
@@ -239,6 +285,15 @@ export async function processCompletedCall(callSession: VapiCallSession): Promis
     // 2. Extract structured appointment data
     if (callSession.transcript) {
       const appointmentData = await parseAppointmentDetails(callSession.transcript);
+      
+      // Update client name in metadata if extracted from appointment data
+      if (appointmentData.clientInfo?.fullName && !callSession.metadata?.clientName) {
+        if (!callSession.metadata) {
+          callSession.metadata = {};
+        }
+        callSession.metadata.clientName = appointmentData.clientInfo.fullName;
+        console.log('✅ Set client name from appointment data:', appointmentData.clientInfo.fullName);
+      }
       
       if (appointmentData.clientInfo || appointmentData.appointmentDetails) {
         // Create appointment request

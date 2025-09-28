@@ -1,23 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { 
-  findVapiCallSessionById, 
-  getTranscriptsByCallSession,
-  getTherapistNotesByCallSession 
-} from '@/lib/dummy-data';
-import { 
   getCallSessionById, 
-  getTranscriptsByCallId,
-  getTherapistNotes 
-} from '@/lib/call-processor';
+  getTranscriptsByCallId
+} from '@/lib/database';
 
 // GET /api/vapi/calls/[id] - Get specific call session with transcripts and notes
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Get real call session only (no dummy data fallback)
-    const callSession = getCallSessionById(params.id);
+    const { id } = await params;
+    
+    // Get real call session from database
+    const callSession = await getCallSessionById(id);
     
     if (!callSession) {
       return NextResponse.json(
@@ -29,19 +25,30 @@ export async function GET(
       );
     }
 
-    const transcripts = getTranscriptsByCallId(params.id);
-    const allTherapistNotes = getTherapistNotes();
-    const therapistNotes = allTherapistNotes.filter(note => note.callSessionId === params.id);
+    // Get transcripts from database
+    let transcripts = await getTranscriptsByCallId(id);
+    
+    // If no separate transcript entries but call has transcript text, create a single entry
+    if (transcripts.length === 0 && callSession.transcript) {
+      transcripts = [{
+        id: `transcript-${id}-full`,
+        callSessionId: id,
+        speaker: 'user', // Default to user, or we could parse this
+        text: callSession.transcript,
+        timestamp: callSession.startedAt,
+        confidence: 1.0
+      }];
+    }
 
     return NextResponse.json({
       success: true,
       data: {
         callSession,
         transcripts,
-        therapistNotes,
+        therapistNotes: [], // Empty for now, can add later if needed
         stats: {
           transcriptCount: transcripts.length,
-          noteCount: therapistNotes.length,
+          noteCount: 0,
           averageConfidence: transcripts.length > 0 
             ? transcripts.reduce((sum, t) => sum + (t.confidence || 0), 0) / transcripts.length
             : 0

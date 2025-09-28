@@ -15,19 +15,10 @@ export default function CallSessionCard({ callSession, showPatientInfo = true, o
   const getStatusColor = (status: VapiCallSession['status']) => {
     switch (status) {
       case 'in-progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
       case 'failed': return 'bg-red-100 text-red-800';
       case 'cancelled': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const getUrgencyColor = (level?: number) => {
-    if (!level) return 'bg-gray-500';
-    if (level >= 8) return 'bg-red-500';
-    if (level >= 6) return 'bg-orange-500';
-    if (level >= 4) return 'bg-yellow-500';
-    return 'bg-green-500';
   };
 
   // Extract client name from summary or metadata
@@ -39,16 +30,33 @@ export default function CallSessionCard({ callSession, showPatientInfo = true, o
     
     // Extract from summary if available
     if (callSession.summary) {
-      // Look for patterns like "John Smith called" or "Jane Doe scheduled"
-      const nameMatch = callSession.summary.match(/^([A-Z][a-z]+ [A-Z][a-z]+)\s+(called|scheduled|contacted|requested)/);
-      if (nameMatch) {
-        return nameMatch[1];
-      }
+      // Common patterns for name extraction from AI-generated summaries
+      const patterns = [
+        // "Jacob Bilott, a new client referral, called" - matches your example
+        /^([A-Z][a-z]+\s+[A-Z][a-z]+),?\s+(?:a\s+new\s+client|called|is\s+calling|contacted|scheduled)/i,
+        // "John Smith called" or "Jane Doe scheduled"
+        /^([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(called|scheduled|contacted|requested)/i,
+        // "Patient [Name] called"
+        /Patient\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
+        // "Client [Name] requested"
+        /Client\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
+        // "[Name] is seeking" or "[Name] wants to"
+        /^([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(?:is\s+seeking|wants\s+to|needs\s+to|would\s+like)/i,
+        // More flexible pattern for names at the beginning
+        /^([A-Z][a-z]+\s+[A-Z][a-z]+)[\s,]/
+      ];
       
-      // Alternative pattern: "Patient [Name] called"
-      const patientMatch = callSession.summary.match(/Patient ([A-Z][a-z]+ [A-Z][a-z]+)/);
-      if (patientMatch) {
-        return patientMatch[1];
+      for (const pattern of patterns) {
+        const match = callSession.summary.match(pattern);
+        if (match && match[1]) {
+          const name = match[1].trim();
+          // Basic validation - should be 2-4 words, each starting with capital
+          const words = name.split(/\s+/);
+          if (words.length >= 2 && words.length <= 4 && 
+              words.every(word => /^[A-Z][a-z]+$/.test(word))) {
+            return name;
+          }
+        }
       }
     }
     
@@ -76,16 +84,10 @@ export default function CallSessionCard({ callSession, showPatientInfo = true, o
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(callSession.status)}`}>
-            {callSession.status}
-          </span>
-          {callSession.metadata?.urgencyLevel && (
-            <div className="flex items-center">
-              <div className={`w-2 h-2 rounded-full mr-1 ${getUrgencyColor(callSession.metadata.urgencyLevel)}`}></div>
-              <span className="text-xs text-gray-600">
-                Urgency: {callSession.metadata.urgencyLevel}/10
-              </span>
-            </div>
+          {callSession.status !== 'completed' && (
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(callSession.status)}`}>
+              {callSession.status}
+            </span>
           )}
           <DeleteCallButton 
             callId={callSession.id}

@@ -82,8 +82,47 @@ export async function fetchVapiCalls(): Promise<VapiCall[]> {
   }
 }
 
+// Helper function to extract client name from transcript
+function extractClientNameFromTranscript(transcript?: string): string | undefined {
+  if (!transcript) return undefined;
+  
+  // Common patterns for name extraction from therapy appointment calls
+  const patterns = [
+    // "Hi, my name is John Smith" or "My name is Jane Doe"
+    /(?:hi|hello),?\s*(?:my\s+name\s+is|i'm|i\s+am)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
+    // "This is John Smith calling" or "John Smith here"
+    /(?:this\s+is|it's)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)(?:\s+calling|\s+here|\s+about)?/i,
+    // "I'm calling for John Smith" or direct name mention
+    /(?:i'm\s+calling\s+for|calling\s+for|my\s+name\s+is)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/i,
+    // "Jacob Bilott" at the start of a sentence (as in the example)
+    /^([A-Z][a-z]+\s+[A-Z][a-z]+),?\s+(?:a\s+new\s+client|called|is\s+calling)/i,
+    // Name followed by common appointment phrases
+    /([A-Z][a-z]+\s+[A-Z][a-z]+)(?:,\s*(?:a\s+new\s+client|called|is\s+calling|wants\s+to\s+schedule))/i,
+    // "Sure, it's [Name]" pattern
+    /(?:sure|yes),?\s+it's\s+([A-Z][a-z]+\s+[A-Z][a-z]+)/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = transcript.match(pattern);
+    if (match && match[1]) {
+      const name = match[1].trim();
+      // Basic validation - should be 2-4 words, each starting with capital
+      const words = name.split(/\s+/);
+      if (words.length >= 2 && words.length <= 4 && 
+          words.every(word => /^[A-Z][a-z]+$/.test(word))) {
+        return name;
+      }
+    }
+  }
+  
+  return undefined;
+}
+
 // Convert Vapi call to our VapiCallSession format
 export function convertVapiCallToSession(vapiCall: VapiCall): VapiCallSession {
+  // Extract client name from transcript
+  const clientName = extractClientNameFromTranscript(vapiCall.transcript);
+  
   return {
     id: `vapi-${vapiCall.id}`,
     callId: vapiCall.id,
@@ -97,13 +136,22 @@ export function convertVapiCallToSession(vapiCall: VapiCall): VapiCallSession {
     recordingUrl: vapiCall.recordingUrl,
     assistantId: 'default',
     callType: 'appointment_request',
-    metadata: vapiCall.analysis ? {
-      emotionalState: vapiCall.analysis.sentiment || 'neutral',
-      urgencyLevel: vapiCall.analysis.urgency || 3,
-      keyTopics: vapiCall.analysis.topics || [],
-      followUpRequired: vapiCall.analysis.followUpNeeded || false,
-      referralNeeded: vapiCall.analysis.referralRecommended || false,
-    } : undefined,
+    metadata: {
+      ...(vapiCall.analysis ? {
+        emotionalState: vapiCall.analysis.sentiment || 'neutral',
+        urgencyLevel: vapiCall.analysis.urgency || 3,
+        keyTopics: vapiCall.analysis.topics || [],
+        followUpRequired: vapiCall.analysis.followUpNeeded || false,
+        referralNeeded: vapiCall.analysis.referralRecommended || false,
+      } : {
+        urgencyLevel: 3,
+        keyTopics: [],
+        followUpRequired: false,
+        referralNeeded: false,
+      }),
+      // Add extracted client name
+      clientName: clientName
+    },
     createdAt: vapiCall.startedAt,
     updatedAt: vapiCall.endedAt || vapiCall.startedAt,
   };
@@ -160,6 +208,18 @@ export async function fetchAndProcessCalls(): Promise<{
     // Process each completed call with AI
     for (const callSession of callsToProcess) {
       try {
+          // Extract client name if not already set
+          if (!callSession.metadata?.clientName && callSession.transcript) {
+            const extractedName = extractClientNameFromTranscript(callSession.transcript);
+            if (extractedName) {
+              if (!callSession.metadata) {
+                callSession.metadata = { urgencyLevel: 3, keyTopics: [], followUpRequired: false, referralNeeded: false };
+              }
+              callSession.metadata.clientName = extractedName;
+              console.log('✅ Extracted client name for call:', callSession.id, '-', extractedName);
+            }
+          }
+          
           // Generate AI summary if not already present
           if (!callSession.summary) {
             console.log('🤖 Generating AI summary for call:', callSession.id);

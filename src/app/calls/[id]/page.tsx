@@ -3,16 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { VapiCallSession, VapiTranscriptEntry, TherapistNote } from '@/lib/types';
-import { 
-  findVapiCallSessionById, 
-  getTranscriptsByCallSession, 
-  getTherapistNotesByCallSession 
-} from '@/lib/dummy-data';
 import TranscriptViewer from '../../components/TranscriptViewer';
 import { formatDuration, formatPhoneNumber, formatRelativeTime } from '@/lib/utils';
 
 interface CallSessionPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function CallSessionPage({ params }: CallSessionPageProps) {
@@ -22,15 +17,26 @@ export default function CallSessionPage({ params }: CallSessionPageProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, this would be an API call
-    const session = findVapiCallSessionById(params.id);
-    if (session) {
-      setCallSession(session);
-      setTranscripts(getTranscriptsByCallSession(params.id));
-      setTherapistNotes(getTherapistNotesByCallSession(params.id));
+    async function fetchCallData() {
+      try {
+        const resolvedParams = await params;
+        const response = await fetch(`/api/vapi/calls/${resolvedParams.id}`);
+        const result = await response.json();
+        
+        if (result.success) {
+          setCallSession(result.data.callSession);
+          setTranscripts(result.data.transcripts);
+          setTherapistNotes(result.data.therapistNotes);
+        }
+      } catch (error) {
+        console.error('Error fetching call data:', error);
+      } finally {
+        setLoading(false);
+      }
     }
-    setLoading(false);
-  }, [params.id]);
+    
+    fetchCallData();
+  }, [params]);
 
   if (loading) {
     return (
@@ -160,11 +166,9 @@ export default function CallSessionPage({ params }: CallSessionPageProps) {
             <div>
               <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Assessment</h4>
               <div className="space-y-1 text-sm">
-                {callSession.metadata?.emotionalState && (
-                  <p><span className="font-medium">Emotional State:</span> {callSession.metadata.emotionalState}</p>
-                )}
                 <p><span className="font-medium">Follow-up Required:</span> {callSession.metadata?.followUpRequired ? 'Yes' : 'No'}</p>
-                <p><span className="font-medium">Referral Needed:</span> {callSession.metadata?.referralNeeded ? 'Yes' : 'No'}</p>
+                <p><span className="font-medium">Intake Completed:</span> {callSession.metadata?.intakeCompleted ? 'Yes' : 'No'}</p>
+                <p><span className="font-medium">Insurance Verified:</span> {callSession.metadata?.insuranceVerified ? 'Yes' : 'No'}</p>
               </div>
             </div>
 
