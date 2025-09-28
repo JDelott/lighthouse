@@ -9,7 +9,6 @@ import { getAllCallSessions } from '@/lib/call-processor';
 import { VapiCallSession, AppointmentRequest, TherapistNote } from '@/lib/types';
 import CallSessionCard from '../components/CallSessionCard';
 import RefreshButton from '../components/RefreshButton';
-import SimpleCalendar from '../components/SimpleCalendar';
 // import VapiTestButton from '../components/VapiTestButton';
 import { config, formatPhoneForDisplay } from '@/lib/config';
 
@@ -176,6 +175,30 @@ export default function DashboardPage() {
                       <div className="text-sm text-gray-500">{session.user.email}</div>
                     </div>
                     <div className="py-1">
+                      <Link
+                        href="/calendar"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          Calendar
+                        </div>
+                      </Link>
+                      <Link
+                        href="/settings"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <div className="flex items-center">
+                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          Settings
+                        </div>
+                      </Link>
+                      <div className="border-t border-gray-100 my-1"></div>
                       <button
                         onClick={handleSignOut}
                         className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
@@ -317,86 +340,6 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Calendar Section */}
-        <div className="mt-12">
-          <div className="mb-6">
-            <h2 className="text-2xl font-light text-black mb-2">Appointment Calendar</h2>
-            <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
-            <p className="text-gray-600 mt-3">View and manage appointment availability</p>
-          </div>
-          
-          <div className="grid grid-cols-12 gap-8">
-            {/* Calendar */}
-            <div className="col-span-12 lg:col-span-8">
-              <SimpleCalendar 
-                onAppointmentBooked={(appointment) => {
-                  console.log('✅ Appointment booked from dashboard:', appointment);
-                  // Could show a success notification here
-                }}
-              />
-            </div>
-            
-            {/* Calendar Stats/Info */}
-            <div className="col-span-12 lg:col-span-4">
-              <div className="bg-white border border-gray-100 rounded-lg p-6">
-                <h3 className="text-lg font-medium text-black mb-4">Quick Actions</h3>
-                <div className="space-y-3">
-                  <button 
-                    onClick={() => {
-                      // Could open a modal to create a therapist
-                      console.log('Create therapist clicked');
-                    }}
-                    className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">Add Therapist</p>
-                        <p className="text-sm text-gray-500">Manage your team</p>
-                      </div>
-                    </div>
-                  </button>
-                  
-                  <button 
-                    onClick={() => {
-                      // Could open settings or calendar sync
-                      console.log('Calendar settings clicked');
-                    }}
-                    className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">Calendar Settings</p>
-                        <p className="text-sm text-gray-500">Configure schedules</p>
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-              
-              <div className="bg-green-50 border border-green-100 rounded-lg p-6 mt-6">
-                <h3 className="text-lg font-medium text-black mb-3">📅 Calendar Active</h3>
-                <p className="text-sm text-green-700 leading-relaxed">
-                  Your internal calendar system is now active! Clients can book appointments in real-time during AI calls.
-                </p>
-                <div className="mt-4 text-xs text-green-600">
-                  <strong>Next:</strong> Add therapists and configure working hours
-                </div>
               </div>
             </div>
           </div>
