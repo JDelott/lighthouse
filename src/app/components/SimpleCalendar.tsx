@@ -258,11 +258,11 @@ export default function SimpleCalendar({
                         )}
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-medium ${
-                          isBooked ? 'text-orange-600' : 'text-green-600'
-                        }`}>
-                          {isBooked ? 'Follow-up Scheduled' : 'Available'}
-                        </p>
+                        {!isBooked && (
+                          <p className="text-sm font-medium text-green-600">
+                            Available
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -289,7 +289,7 @@ export default function SimpleCalendar({
                             <span>Scheduling...</span>
                           </div>
                         ) : (
-                          'Schedule Follow-up'
+                          'Schedule'
                         )}
                       </button>
                     )}
