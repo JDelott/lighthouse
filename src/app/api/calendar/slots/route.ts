@@ -60,16 +60,30 @@ export async function GET(request: NextRequest) {
       duration
     );
 
-    // Get booked appointments for this date
-    const appointments = await getAppointments(session.user.organizationId, date, date);
+    // Get booked appointments for this date (temporarily disabled to focus on appointment requests)
+    // const appointments = await getAppointments(session.user.organizationId, date, date);
+    const appointments: any[] = []; // Disable dummy appointments for now
     
     // Get appointment requests that have preferred dates for this date
     const { getAppointmentRequests } = await import('@/lib/database');
     const appointmentRequests = await getAppointmentRequests(session.user.organizationId);
     const requestsForDate = appointmentRequests.filter(req => 
-      req.status === 'info_gathered' && 
+      // Include pending, scheduled, and confirmed follow-ups, but exclude cancelled
+      (req.status === 'info_gathered' || req.status === 'follow_up_scheduled' || req.status === 'appointment_booked') && 
       req.appointmentDetails?.preferredDates?.includes(date)
     );
+    
+    console.log(`🔍 Filtering appointment requests for date ${date}:`, {
+      totalRequests: appointmentRequests.length,
+      requestsWithPreferredDates: appointmentRequests.map(req => ({
+        id: req.id,
+        status: req.status,
+        preferredDates: req.appointmentDetails?.preferredDates,
+        includesTargetDate: req.appointmentDetails?.preferredDates?.includes(date)
+      })),
+      filteredRequestsForDate: requestsForDate.length,
+      requestsForDateDetails: requestsForDate.map(req => ({ id: req.id, status: req.status }))
+    });
     
     // Get therapist info
     const therapists = await getTherapists(session.user.organizationId);
@@ -108,12 +122,12 @@ export async function GET(request: NextRequest) {
           therapistId: defaultTherapist?.id || 'default',
           therapistName: defaultTherapist?.name || 'Available Therapist',
           durationMinutes: request.appointmentDetails?.duration || 60,
-          isBooked: true, // Mark as booked so it shows as "Follow-up Scheduled"
+          isBooked: true, // Mark as booked so it shows with action buttons
           appointmentRequestId: request.id,
           clientName: request.clientInfo?.fullName || 'Pending Client',
           clientPhone: request.clientInfo?.phone || '',
           appointmentType: request.appointmentDetails?.type || 'follow_up',
-          status: 'follow_up_scheduled'
+          status: request.status // Use actual status from database
         };
       });
     });

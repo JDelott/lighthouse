@@ -66,6 +66,49 @@ export default function CalendarPage() {
     setSelectedDateTotal(dateFollowUps);
   };
 
+  const handleAppointmentAction = async (action: 'confirm' | 'cancel', slotId: string) => {
+    try {
+      console.log(`${action === 'confirm' ? '✅' : '❌'} ${action}ing appointment:`, slotId);
+      
+      const response = await fetch(`/api/calendar/appointments/${action}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ slotId, action }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log(`✅ Appointment ${action}ed successfully`);
+        
+        // Force complete refresh of all data
+        console.log('🔄 Refreshing all calendar data...');
+        
+        // 1. Refresh appointment requests (for overview counts)
+        await loadAppointmentRequests();
+        
+        // 2. Force calendar component to reload (for slot display)
+        setCalendarKey(prev => prev + 1);
+        
+        // 3. Reset selected date info to trigger recalculation
+        if (selectedDate) {
+          // The calendar will automatically call handleDateChange when it reloads
+          console.log('📅 Calendar will refresh selected date info');
+        }
+        
+        console.log('✅ All data refreshed');
+      } else {
+        console.error(`❌ Failed to ${action} appointment:`, result.error);
+        alert(`Failed to ${action} appointment: ${result.error}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error ${action}ing appointment:`, error);
+      alert(`Error ${action}ing appointment. Please try again.`);
+    }
+  };
+
   // Load appointment requests that need follow-up
   const loadAppointmentRequests = async () => {
     try {
@@ -81,10 +124,15 @@ export default function CalendarPage() {
         const pending = requests.filter((req: any) => 
           req.status === 'info_gathered' || req.status === 'pending_therapist_review'
         ).length;
+        const scheduled = requests.filter((req: any) => 
+          req.status === 'follow_up_scheduled' || req.status === 'appointment_booked'
+        ).length;
         setPendingCount(pending);
         console.log('✅ Loaded appointment requests:', {
           total: requests.length,
           pending: pending,
+          scheduled: scheduled,
+          statuses: requests.map(r => ({ id: r.id, status: r.status })),
           requests: requests,
           firstRequest: requests[0]
         });
@@ -265,7 +313,7 @@ export default function CalendarPage() {
               </div>
               <div className="text-center p-2 bg-blue-50 rounded border border-blue-100">
                 <div className="text-lg font-bold text-blue-600">
-                  {appointmentRequests.filter(req => req.status === 'follow_up_scheduled').length}
+                  {appointmentRequests.filter(req => req.status === 'follow_up_scheduled' || req.status === 'appointment_booked').length}
                 </div>
                 <div className="text-xs text-blue-700">Total Scheduled</div>
               </div>
@@ -284,6 +332,7 @@ export default function CalendarPage() {
               key={calendarKey}
               onAppointmentBooked={handleAppointmentBooked}
               onDateChange={handleDateChange}
+              onAppointmentAction={handleAppointmentAction}
               className="h-fit"
             />
           </div>

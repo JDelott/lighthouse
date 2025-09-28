@@ -12,6 +12,7 @@ interface SimpleCalendarProps {
   };
   onAppointmentBooked?: (appointment: Appointment) => void;
   onDateChange?: (date: string, slots: any[]) => void;
+  onAppointmentAction?: (action: 'confirm' | 'cancel', slotId: string) => void;
   className?: string;
 }
 
@@ -29,6 +30,7 @@ export default function SimpleCalendar({
   clientInfo, 
   onAppointmentBooked,
   onDateChange,
+  onAppointmentAction,
   className = ''
 }: SimpleCalendarProps) {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -274,9 +276,42 @@ export default function SimpleCalendar({
                   </div>
                   <div className="ml-4">
                     {isBooked ? (
-                      <span className="px-4 py-2 text-sm text-orange-700 bg-orange-100 rounded-lg">
-                        Pending Follow-up
-                      </span>
+                      // Show different UI based on appointment status
+                      (slot as any).status === 'appointment_booked' ? (
+                        <span className="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 rounded">
+                          ✅ Confirmed
+                        </span>
+                      ) : (slot as any).status === 'cancelled' ? (
+                        <span className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded">
+                          ❌ Cancelled
+                        </span>
+                      ) : (
+                        // Show action buttons for pending appointments
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              const slotId = slot.appointmentRequestId || slot.appointmentId || `${slot.therapistId}-${slot.startTime}`;
+                              console.log('🔍 Confirm button clicked for slot:', { 
+                                slotId, 
+                                appointmentRequestId: slot.appointmentRequestId, 
+                                appointmentId: slot.appointmentId,
+                                fallback: `${slot.therapistId}-${slot.startTime}`,
+                                fullSlot: slot 
+                              });
+                              onAppointmentAction?.('confirm', slotId);
+                            }}
+                            className="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded transition-colors"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => onAppointmentAction?.('cancel', slot.appointmentRequestId || slot.appointmentId || `${slot.therapistId}-${slot.startTime}`)}
+                            className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )
                     ) : (
                       <button
                         onClick={() => handleBookSlot(slot)}
