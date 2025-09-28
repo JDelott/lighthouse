@@ -5,7 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 // Removed dummy data imports - using real data only
-import { getAllCallSessions } from '@/lib/call-processor';
+// Removed server-side import - using API calls instead
 import { VapiCallSession, AppointmentRequest, TherapistNote } from '@/lib/types';
 import CallSessionCard from '../components/CallSessionCard';
 import RefreshButton from '../components/RefreshButton';
@@ -44,11 +44,8 @@ export default function DashboardPage() {
     }
   }, [session, status, router]);
 
-  // Always prefer database data over in-memory data
-  // Only use in-memory as fallback if we haven't loaded from database yet
-  const memoryCallSessions = getAllCallSessions();
-  const allCallSessions = hasLoadedFromDatabase ? apiCallSessions : 
-    (apiCallSessions.length > 0 ? apiCallSessions : memoryCallSessions);
+  // Use only API data from database
+  const allCallSessions = apiCallSessions;
   
   // Load calls from database (webhooks automatically populate the database)
   const loadCallsFromDatabase = async () => {

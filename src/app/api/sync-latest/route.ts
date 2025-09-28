@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { fetchVapiCalls, convertVapiCallToSession } from '@/lib/vapi-api';
 import { saveCallSession } from '@/lib/database';
+import { processCompletedCall } from '@/lib/call-processor';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,6 +49,18 @@ export async function POST(request: NextRequest) {
     console.log('   Phone:', callSession.clientPhone);
     console.log('   Status:', callSession.status);
     console.log('   Organization:', session.user.organizationId);
+
+    // NEW: Process completed calls for appointment booking
+    if (callSession.status === 'completed' && callSession.transcript) {
+      console.log('🤖 Processing completed call for appointments...');
+      const callSessionWithOrg = { ...callSession, organizationId: session.user.organizationId };
+      await processCompletedCall(callSessionWithOrg);
+      console.log('✅ Appointment processing completed');
+    } else if (callSession.status === 'completed') {
+      console.log('⚠️ Call completed but no transcript available');
+    } else {
+      console.log('ℹ️ Call not yet completed, skipping appointment processing');
+    }
 
     return NextResponse.json({
       success: true,

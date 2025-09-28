@@ -14,6 +14,15 @@ interface SimpleCalendarProps {
   className?: string;
 }
 
+interface SlotWithStatus extends AvailableSlot {
+  isBooked?: boolean;
+  appointmentId?: string;
+  clientName?: string;
+  clientPhone?: string;
+  appointmentType?: string;
+  status?: string;
+}
+
 export default function SimpleCalendar({ 
   appointmentRequestId, 
   clientInfo, 
@@ -21,7 +30,7 @@ export default function SimpleCalendar({
   className = ''
 }: SimpleCalendarProps) {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [allSlots, setAllSlots] = useState<SlotWithStatus[]>([]);
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState<string | null>(null); // Track which slot is being booked
   const [error, setError] = useState<string | null>(null);
@@ -34,17 +43,17 @@ export default function SimpleCalendar({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/calendar/availability?date=${selectedDate}&duration=60`);
+      const response = await fetch(`/api/calendar/slots?date=${selectedDate}&duration=60`);
       const result = await response.json();
       
       if (result.success) {
-        setAvailableSlots(result.data.availableSlots);
+        setAllSlots(result.data.allSlots);
       } else {
-        setError(result.error || 'Failed to load availability');
+        setError(result.error || 'Failed to load slots');
       }
     } catch (error) {
-      console.error('Error loading availability:', error);
-      setError('Failed to load availability');
+      console.error('Error loading slots:', error);
+      setError('Failed to load slots');
     } finally {
       setLoading(false);
     }
@@ -137,7 +146,9 @@ export default function SimpleCalendar({
   return (
     <div className={`bg-white border border-gray-200 rounded-lg p-6 ${className}`}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium text-gray-900">Available Appointments</h3>
+        <h3 className="text-lg font-medium text-gray-900">
+          {allSlots.filter(s => !s.isBooked).length} available slots on {formatDate(selectedDate)}
+        </h3>
         {loading && (
           <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         )}
@@ -191,7 +202,7 @@ export default function SimpleCalendar({
             <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
             <p className="text-gray-500">Loading available times...</p>
           </div>
-        ) : availableSlots.length === 0 ? (
+        ) : allSlots.length === 0 ? (
           <div className="text-center py-8">
             <div className="w-12 h-12 bg-gray-100 rounded-full mx-auto mb-3 flex items-center justify-center">
               <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,16 +215,21 @@ export default function SimpleCalendar({
         ) : (
           <>
             <div className="text-sm text-gray-600 mb-3">
-              {availableSlots.length} available slot{availableSlots.length !== 1 ? 's' : ''} on {formatDate(selectedDate)}
+              {allSlots.filter(s => !s.isBooked).length} available slot{allSlots.filter(s => !s.isBooked).length !== 1 ? 's' : ''} on {formatDate(selectedDate)}
             </div>
-            {availableSlots.map((slot, index) => {
+            {allSlots.map((slot, index) => {
               const slotKey = `${slot.therapistId}-${slot.startTime}`;
               const isBooking = booking === slotKey;
+              const isBooked = slot.isBooked;
               
               return (
                 <div
                   key={`${slot.therapistId}-${slot.startTime}-${index}`}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all"
+                  className={`flex items-center justify-between p-4 border rounded-lg transition-all ${
+                    isBooked 
+                      ? 'border-gray-300 bg-gray-50' 
+                      : 'border-gray-200 hover:border-blue-300 hover:shadow-sm'
+                  }`}
                 >
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
@@ -222,35 +238,50 @@ export default function SimpleCalendar({
                           {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
                         </p>
                         <p className="text-sm text-gray-500">
-                          with {slot.therapistName} • {slot.durationMinutes} minutes
+                          {slot.durationMinutes} minutes
                         </p>
+                        {isBooked && slot.clientName && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            Client: {slot.clientName}
+                          </p>
+                        )}
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-green-600 font-medium">Available</p>
+                        <p className={`text-sm font-medium ${
+                          isBooked ? 'text-red-600' : 'text-green-600'
+                        }`}>
+                          {isBooked ? 'Booked' : 'Available'}
+                        </p>
                       </div>
                     </div>
                   </div>
                   <div className="ml-4">
-                    <button
-                      onClick={() => handleBookSlot(slot)}
-                      disabled={isBooking || !clientInfo}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        !clientInfo
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : isBooking
-                          ? 'bg-blue-400 text-white cursor-not-allowed'
-                          : 'bg-blue-500 text-white hover:bg-blue-600'
-                      }`}
-                    >
-                      {isBooking ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>Booking...</span>
-                        </div>
-                      ) : (
-                        'Book Appointment'
-                      )}
-                    </button>
+                    {isBooked ? (
+                      <span className="px-4 py-2 text-sm text-gray-500 bg-gray-100 rounded-lg">
+                        Unavailable
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleBookSlot(slot)}
+                        disabled={isBooking || !clientInfo}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                          !clientInfo
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : isBooking
+                            ? 'bg-blue-400 text-white cursor-not-allowed'
+                            : 'bg-blue-500 text-white hover:bg-blue-600'
+                        }`}
+                      >
+                        {isBooking ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span>Booking...</span>
+                          </div>
+                        ) : (
+                          'Book Appointment'
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

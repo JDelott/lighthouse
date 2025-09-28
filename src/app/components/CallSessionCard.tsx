@@ -143,9 +143,25 @@ export default function CallSessionCard({ callSession, showPatientInfo = true, o
               Follow-up Required
             </span>
           )}
-          {callSession.metadata?.referralNeeded && (
+          {(callSession.metadata as any)?.referralNeeded && (
             <span className="inline-flex items-center px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
               Referral Needed
+            </span>
+          )}
+          {/* Enhanced scheduling indicators */}
+          {(callSession as any).schedulingIntent === 'clear' && (
+            <span className="inline-flex items-center px-2 py-1 text-xs bg-emerald-100 text-emerald-800 rounded-full">
+              📅 Ready to Schedule
+            </span>
+          )}
+          {(callSession as any).schedulingIntent === 'implied' && (
+            <span className="inline-flex items-center px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded-full">
+              📅 Scheduling Interest
+            </span>
+          )}
+          {callSession.metadata?.urgencyLevel && callSession.metadata.urgencyLevel >= 4 && (
+            <span className="inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+              🚨 High Priority
             </span>
           )}
         </div>
@@ -170,7 +186,7 @@ export default function CallSessionCard({ callSession, showPatientInfo = true, o
             </a>
           )}
         </div>
-        {(callSession.metadata?.followUpRequired || callSession.metadata?.referralNeeded) && (
+        {(callSession.metadata?.followUpRequired || (callSession.metadata as any)?.referralNeeded) && (
           <Link
             href={`/calls/${callSession.id}/notes`}
             className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium transition-colors"

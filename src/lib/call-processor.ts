@@ -8,30 +8,35 @@ export let realTherapistNotes: TherapistNote[] = [];
 
 // Database functions (only available on server)
 let dbModule: any = null;
-try {
-  if (typeof window === 'undefined') {
-    // Only load database module on server-side
-    dbModule = require('./database');
-    console.log('🐘 Database module loaded');
+function getDbModule() {
+  if (typeof window === 'undefined' && !dbModule) {
+    try {
+      dbModule = require('./database');
+      console.log('🐘 Database module loaded');
+    } catch (error) {
+      console.error('Error loading database module:', error);
+    }
   }
-} catch (error) {
-  console.error('Error loading database module:', error);
+  return dbModule;
 }
 
 // Helper function to save data to database (only works on server-side)
 async function saveToDatabase(type: string, data: any) {
-  if (typeof window === 'undefined' && dbModule) {
-    try {
-      switch (type) {
-        case 'appointment':
-          await dbModule.saveAppointmentRequest(data);
-          break;
-        case 'note':
-          await dbModule.saveTherapistNote(data);
-          break;
+  if (typeof window === 'undefined') {
+    const db = getDbModule();
+    if (db) {
+      try {
+        switch (type) {
+          case 'appointment':
+            await db.saveAppointmentRequest(data);
+            break;
+          case 'note':
+            await db.saveTherapistNote(data);
+            break;
+        }
+      } catch (error) {
+        console.error(`Error saving ${type} to database:`, error);
       }
-    } catch (error) {
-      console.error(`Error saving ${type} to database:`, error);
     }
   }
 }
@@ -124,41 +129,32 @@ export async function parseAppointmentDetails(transcript: string): Promise<Parti
       },
       body: JSON.stringify({
         model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 800,
+        max_tokens: 400,
         temperature: 0.1,
-        system: `You are a data extraction assistant. Extract structured appointment information from therapy scheduling call transcripts.
+        system: `Extract basic appointment information from this therapy call transcript.
 
-        Return a JSON object with this exact structure:
+        Return ONLY a JSON object with this structure:
         {
           "clientInfo": {
-            "fullName": "extracted name or null",
-            "phone": "extracted phone or null", 
-            "email": "extracted email or null",
-            "dateOfBirth": "extracted DOB or null"
+            "fullName": "client name if mentioned",
+            "phone": "phone number if mentioned"
           },
           "appointmentDetails": {
-            "type": "initial_consultation|follow_up|couples_therapy|family_therapy|urgent_consultation",
-            "urgency": 1-5,
-            "preferredDates": ["YYYY-MM-DD"],
-            "preferredTimes": ["time strings"],
-            "notes": "relevant appointment notes"
-          },
-          "intakeInfo": {
-            "reasonForSeeking": "main reason for therapy",
-            "previousTherapy": true/false,
-            "currentMedications": "medications or 'None'",
-            "insuranceInfo": {
-              "provider": "insurance provider or null",
-              "memberId": "member ID or null"
-            }
+            "preferredDates": ["dates mentioned in YYYY-MM-DD format"],
+            "preferredTimes": ["times mentioned"],
+            "notes": "brief summary of what client wants"
           }
         }
 
-        Only extract information that is clearly stated. Use null for missing data.`,
+        IMPORTANT: 
+        - Today's date is ${new Date().toISOString().split('T')[0]}
+        - Convert relative dates like "tomorrow", "next week", "Monday" to actual YYYY-MM-DD dates
+        - If no specific date is mentioned but they want to schedule, use tomorrow's date
+        - Only extract information that is explicitly mentioned. Use null for missing data.`,
         messages: [
           {
             role: 'user',
-            content: `Extract appointment details from this transcript:\n\n${transcript}`
+            content: `Extract appointment info from this call:\n\n${transcript}`
           }
         ]
       })
@@ -255,9 +251,12 @@ function extractClientNameFromTranscript(transcript?: string): string | undefine
 }
 
 // Process completed call and generate therapist materials
-export async function processCompletedCall(callSession: VapiCallSession): Promise<void> {
+export async function processCompletedCall(callSession: VapiCallSession & { organizationId?: string }): Promise<void> {
   try {
-    console.log('Processing completed call:', callSession.id);
+    console.log('🚀 PROCESSING COMPLETED CALL:', callSession.id);
+    console.log('🏢 Organization ID:', callSession.organizationId);
+    console.log('📞 Call has transcript:', !!callSession.transcript);
+    console.log('📞 Transcript length:', callSession.transcript?.length || 0);
     
     // 0. Extract client name if not already set
     if (!callSession.metadata?.clientName && callSession.transcript) {
@@ -282,9 +281,20 @@ export async function processCompletedCall(callSession: VapiCallSession): Promis
       callSession.summary = aiSummary;
     }
 
-    // 2. Extract structured appointment data
+    // 2. Extract appointment data and book directly
     if (callSession.transcript) {
+      console.log('📝 TRANSCRIPT FOUND - Extracting appointment data...');
+      console.log('📄 Transcript preview:', callSession.transcript.substring(0, 200) + '...');
+      
       const appointmentData = await parseAppointmentDetails(callSession.transcript);
+      
+      console.log('🔍 AI EXTRACTION RESULT:', {
+        hasClientInfo: !!appointmentData.clientInfo,
+        hasAppointmentDetails: !!appointmentData.appointmentDetails,
+        clientName: appointmentData.clientInfo?.fullName,
+        preferredDates: appointmentData.appointmentDetails?.preferredDates,
+        fullExtractedData: appointmentData
+      });
       
       // Update client name in metadata if extracted from appointment data
       if (appointmentData.clientInfo?.fullName && !callSession.metadata?.clientName) {
@@ -295,22 +305,18 @@ export async function processCompletedCall(callSession: VapiCallSession): Promis
         console.log('✅ Set client name from appointment data:', appointmentData.clientInfo.fullName);
       }
       
-      if (appointmentData.clientInfo || appointmentData.appointmentDetails) {
-        // Create appointment request
-        const appointmentRequest: AppointmentRequest = {
-          id: `appt-req-${Date.now()}`,
-          callSessionId: callSession.id,
-          clientInfo: appointmentData.clientInfo || {},
-          appointmentDetails: appointmentData.appointmentDetails || {},
-          intakeInfo: appointmentData.intakeInfo || {},
-          status: 'pending_review',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        realAppointmentRequests.push(appointmentRequest);
-        await saveToDatabase('appointment', appointmentRequest);
-        console.log('Created appointment request:', appointmentRequest.id);
+      // If we have client info and they want to schedule, book it directly
+      if (appointmentData.clientInfo?.fullName && appointmentData.appointmentDetails?.preferredDates?.length > 0) {
+        console.log('📅 Booking appointment directly for:', appointmentData.clientInfo.fullName);
+        console.log('📅 Preferred dates:', appointmentData.appointmentDetails.preferredDates);
+        await bookAppointmentDirectly(appointmentData, callSession.organizationId);
+      } else {
+        console.log('❌ Not enough info to book appointment:', {
+          hasName: !!appointmentData.clientInfo?.fullName,
+          hasDates: !!appointmentData.appointmentDetails?.preferredDates?.length,
+          clientInfo: appointmentData.clientInfo,
+          appointmentDetails: appointmentData.appointmentDetails
+        });
       }
     }
 
@@ -507,4 +513,84 @@ export function getTherapistNotes(): TherapistNote[] {
   return [...realTherapistNotes].sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+}
+
+// Simple function to book appointments directly
+async function bookAppointmentDirectly(appointmentData: any, organizationId?: string): Promise<void> {
+  try {
+    console.log('🚀 Starting direct appointment booking...');
+    const { findAvailableSlotsForOrganization, bookAppointment } = await import('./calendar-service');
+    
+    const clientInfo = appointmentData.clientInfo;
+    const appointmentDetails = appointmentData.appointmentDetails;
+    
+    console.log('📋 Client info:', clientInfo);
+    console.log('📋 Appointment details:', appointmentDetails);
+    
+    // Get organization ID
+    let orgId = organizationId;
+    if (!orgId) {
+      console.log('🔍 Looking up organization ID...');
+      const db = getDbModule();
+      if (!db?.pool) {
+        console.log('❌ Database not available');
+        return;
+      }
+      const orgResult = await db.pool.query('SELECT id FROM organizations LIMIT 1');
+      orgId = orgResult.rows[0]?.id;
+      console.log('🏢 Found organization ID:', orgId);
+    }
+    
+    if (!orgId) {
+      console.log('❌ No organization ID available');
+      return;
+    }
+
+    // Try to book on the first preferred date
+    const preferredDate = appointmentDetails.preferredDates[0];
+    const dateStr = new Date(preferredDate).toISOString().split('T')[0];
+    
+    console.log('📅 Looking for slots on:', dateStr);
+    
+    // Get available slots
+    const availableSlots = await findAvailableSlotsForOrganization(orgId, dateStr, 60);
+    
+    console.log('🎯 Found', availableSlots.length, 'available slots');
+    
+    if (availableSlots.length > 0) {
+      const slot = availableSlots[0];
+      
+      console.log('📝 Booking slot:', slot);
+      
+      const appointment = await bookAppointment({
+        organizationId: orgId,
+        appointmentRequestId: null,
+        therapistId: slot.therapistId,
+        clientName: clientInfo.fullName,
+        clientPhone: clientInfo.phone || 'Unknown',
+        clientEmail: clientInfo.email,
+        appointmentType: 'initial_consultation',
+        appointmentDate: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        durationMinutes: 60,
+        status: 'scheduled',
+        notes: appointmentDetails.notes || 'Booked from call transcript'
+      });
+
+      console.log('🎉 SUCCESS! Appointment booked:', {
+        appointmentId: appointment.id,
+        client: clientInfo.fullName,
+        date: slot.date,
+        time: slot.startTime,
+        therapist: slot.therapistName
+      });
+    } else {
+      console.log('❌ No available slots found for date:', dateStr);
+    }
+    
+  } catch (error) {
+    console.error('💥 Error booking appointment:', error);
+    console.error('💥 Error stack:', error.stack);
+  }
 }

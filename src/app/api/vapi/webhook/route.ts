@@ -31,12 +31,17 @@ export async function POST(request: NextRequest) {
 
     const event: VapiWebhookEvent = await request.json();
     
-    console.log('🔔 Received Vapi webhook event:', {
+    console.log('🔔 VAPI WEBHOOK EVENT RECEIVED:', {
       type: event.type,
       callId: event.callId,
       timestamp: event.timestamp,
       assistantId: event.assistantId,
-      headers: Object.fromEntries(request.headers.entries())
+      hasData: !!event.data,
+      dataPreview: event.data ? {
+        hasTranscript: !!event.data.transcript,
+        transcriptLength: event.data.transcript?.length || 0,
+        status: event.data.status
+      } : null
     });
 
     switch (event.type) {
@@ -164,8 +169,13 @@ async function handleCallEnded(event: VapiWebhookEvent) {
       // Process completed call with AI if it has a transcript
       if (callSession.status === 'completed' && callSession.transcript) {
         console.log('🤖 Processing completed call with AI...');
-        await processCompletedCall(callSession);
+        
+        // Pass the organization ID to the call processor
+        const callSessionWithOrg = { ...callSession, organizationId };
+        await processCompletedCall(callSessionWithOrg);
+        
         console.log('✅ Completed AI processing for call:', callSession.id);
+        console.log('📅 Check calendar for any new appointments from this call');
       }
       
       console.log('📊 Total call sessions now:', realCallSessions.length);
@@ -242,11 +252,17 @@ async function handleFunctionCall(event: VapiWebhookEvent) {
 }
 
 async function handleScheduleAppointment(callId: string, parameters: unknown) {
-  console.log('Scheduling appointment for call:', callId, parameters);
+  console.log('🗓️ Scheduling appointment for call:', callId, parameters);
   
   const callSession = realCallSessions.find(session => session.callId === callId);
-  if (callSession && callSession.metadata && typeof parameters === 'object' && parameters !== null) {
+  if (callSession && typeof parameters === 'object' && parameters !== null) {
     const params = parameters as Record<string, unknown>;
+    
+    // Ensure metadata exists
+    if (!callSession.metadata) {
+      callSession.metadata = {};
+    }
+    
     // Update call session with appointment details
     callSession.metadata.appointmentType = params.appointmentType as any;
     callSession.metadata.urgencyLevel = params.urgency as number;
@@ -255,14 +271,82 @@ async function handleScheduleAppointment(callId: string, parameters: unknown) {
     callSession.metadata.schedulingStatus = 'requested';
     callSession.callType = 'appointment_request';
     
-    console.log('Updated call session with appointment request');
+    console.log('✅ Updated call session with appointment request');
+
+    // NEW: Try to book the appointment in real-time if we have enough info
+    try {
+      await attemptRealTimeBooking(callId, params);
+    } catch (error) {
+      console.error('❌ Error during real-time booking:', error);
+      // Continue - the appointment will be processed later when the call ends
+    }
+  }
+}
+
+// NEW: Real-time booking function for Vapi function calls
+async function attemptRealTimeBooking(callId: string, params: Record<string, unknown>) {
+  console.log('🤖 Attempting real-time booking for call:', callId);
+  
+  // Import calendar service functions
+  const { findAvailableSlotsForOrganization, bookAppointment } = await import('@/lib/calendar-service');
+  const { OrganizationResolver } = await import('@/lib/organization-resolver');
+  
+  // Get organization ID
+  const organizationId = await OrganizationResolver.resolve({
+    assistantId: '', // We'll need to get this from the call
+    phoneNumber: undefined,
+    request: undefined,
+    fallbackToDefault: true
+  });
+  
+  if (!organizationId) {
+    console.log('❌ Could not resolve organization for real-time booking');
+    return;
   }
   
-  // In a real implementation:
-  // 1. Check therapist availability
-  // 2. Book appointment slot
-  // 3. Create calendar event
-  // 4. Send confirmation
+  // Check if we have enough info for booking
+  const preferredDates = params.preferredDates as string[];
+  if (!preferredDates || preferredDates.length === 0) {
+    console.log('⏭️ No preferred dates provided for real-time booking');
+    return;
+  }
+  
+  // Try to find an available slot
+  for (const dateStr of preferredDates) {
+    try {
+      const availableSlots = await findAvailableSlotsForOrganization(organizationId, dateStr, 60);
+      
+      if (availableSlots.length > 0) {
+        const slot = availableSlots[0];
+        
+        // For real-time booking during the call, we'll create a tentative booking
+        // The client name and phone will be filled in when the call ends
+        console.log(`📅 Found available slot: ${slot.date} at ${slot.startTime}`);
+        
+        // For now, just log that we found availability
+        // The actual booking will happen when the call ends and we have full client info
+        console.log('✅ Real-time availability confirmed - will book when call completes');
+        
+        // Update the call session to indicate booking is possible
+        const callSession = realCallSessions.find(session => session.callId === callId);
+        if (callSession?.metadata) {
+          callSession.metadata.schedulingStatus = 'available';
+          callSession.metadata.suggestedSlot = {
+            date: slot.date,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            therapistId: slot.therapistId
+          };
+        }
+        
+        return; // Found a slot, exit
+      }
+    } catch (error) {
+      console.error(`❌ Error checking availability for ${dateStr}:`, error);
+    }
+  }
+  
+  console.log('📅 No available slots found for real-time booking');
 }
 
 async function handleCollectIntakeInfo(callId: string, parameters: unknown) {

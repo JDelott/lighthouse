@@ -5,15 +5,15 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SimpleCalendar from '../components/SimpleCalendar';
-import { Appointment, Therapist } from '@/lib/types';
+import RefreshButton from '../components/RefreshButton';
+import { Appointment } from '@/lib/types';
 
 export default function CalendarPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [therapists, setTherapists] = useState<Therapist[]>([]);
-  const [recentAppointments, setRecentAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [calendarKey, setCalendarKey] = useState(0); // Force calendar refresh
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -38,31 +38,12 @@ export default function CalendarPage() {
     }
   }, [session, status, router]);
 
-  // Load therapists and recent appointments
+  // Set loading to false after session loads
   useEffect(() => {
     if (session) {
-      loadCalendarData();
-    }
-  }, [session]);
-
-  const loadCalendarData = async () => {
-    try {
-      // Load therapists
-      const therapistsResponse = await fetch('/api/therapists');
-      const therapistsResult = await therapistsResponse.json();
-      if (therapistsResult.success) {
-        setTherapists(therapistsResult.data);
-      }
-
-      // Load recent appointments (you'd need to create this API endpoint)
-      // For now, we'll just set empty array
-      setRecentAppointments([]);
-    } catch (error) {
-      console.error('Error loading calendar data:', error);
-    } finally {
       setLoading(false);
     }
-  };
+  }, [session]);
 
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' });
@@ -70,9 +51,13 @@ export default function CalendarPage() {
 
   const handleAppointmentBooked = (appointment: Appointment) => {
     console.log('✅ Appointment booked:', appointment);
-    // Refresh calendar data
-    loadCalendarData();
     // Could show a success notification here
+  };
+
+  const handleRefresh = async () => {
+    console.log('🔄 Refreshing calendar data...');
+    // Force calendar component to refresh by changing key
+    setCalendarKey(prev => prev + 1);
   };
 
   // Show loading state
@@ -107,27 +92,6 @@ export default function CalendarPage() {
               </div>
             </div>
             
-            {/* Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link
-                href="/dashboard"
-                className="text-gray-700 hover:text-black text-sm font-normal tracking-wide transition-colors"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/calendar"
-                className="text-blue-600 text-sm font-medium tracking-wide"
-              >
-                Calendar
-              </Link>
-              <Link
-                href="/settings"
-                className="text-gray-700 hover:text-black text-sm font-normal tracking-wide transition-colors"
-              >
-                Settings
-              </Link>
-            </nav>
             
             <div className="flex items-center space-x-4">
               {/* User Menu */}
@@ -216,14 +180,21 @@ export default function CalendarPage() {
       <main className="max-w-7xl mx-auto px-8 py-12">
         {/* Header Section */}
         <div className="mb-12">
-          <div className="space-y-4">
-            <h1 className="text-4xl font-light text-black leading-tight">
-              Appointment Calendar
-            </h1>
-            <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
-            <p className="text-xl text-gray-600 font-light leading-relaxed">
-              Manage your practice schedule and book appointments in real-time
-            </p>
+          <div className="flex justify-between items-start">
+            <div className="space-y-4">
+              <h1 className="text-4xl font-light text-black leading-tight">
+                Appointment Calendar
+              </h1>
+              <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
+              <p className="text-xl text-gray-600 font-light leading-relaxed">
+                Manage your schedule and book appointments in real-time
+              </p>
+            </div>
+            <RefreshButton 
+              onRefresh={handleRefresh}
+              syncFromVapi={true}
+              className="bg-white border border-gray-200 hover:border-blue-500"
+            />
           </div>
         </div>
 
@@ -232,6 +203,7 @@ export default function CalendarPage() {
           {/* Main Calendar */}
           <div className="col-span-12 lg:col-span-8">
             <SimpleCalendar 
+              key={calendarKey}
               onAppointmentBooked={handleAppointmentBooked}
               className="h-fit"
             />
@@ -239,39 +211,7 @@ export default function CalendarPage() {
           
           {/* Sidebar */}
           <div className="col-span-12 lg:col-span-4 space-y-6">
-            {/* Therapists Card */}
-            <div className="bg-white border border-gray-100 rounded-lg p-6">
-              <h3 className="text-lg font-medium text-black mb-4">Your Team</h3>
-              {therapists.length > 0 ? (
-                <div className="space-y-3">
-                  {therapists.map((therapist) => (
-                    <div key={therapist.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-gray-900">{therapist.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {therapist.isActive ? 'Available' : 'Unavailable'}
-                        </p>
-                      </div>
-                      <div className={`w-3 h-3 rounded-full ${therapist.isActive ? 'bg-green-400' : 'bg-gray-300'}`}></div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-sm">No therapists found</p>
-              )}
-              
-              <button 
-                onClick={() => {
-                  // Could open a modal to create a therapist
-                  console.log('Add therapist clicked');
-                }}
-                className="w-full mt-4 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
-              >
-                + Add Therapist
-              </button>
-            </div>
-
-            {/* Quick Stats */}
+            {/* Today's Overview */}
             <div className="bg-white border border-gray-100 rounded-lg p-6">
               <h3 className="text-lg font-medium text-black mb-4">Today's Overview</h3>
               <div className="space-y-4">
@@ -284,8 +224,11 @@ export default function CalendarPage() {
                   <span className="font-medium text-green-600">8</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Therapists Active</span>
-                  <span className="font-medium text-black">{therapists.filter(t => t.isActive).length}</span>
+                  <span className="text-gray-600">Status</span>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span className="font-medium text-green-600 text-sm">Available</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -323,7 +266,7 @@ export default function CalendarPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">Working Hours</p>
-                      <p className="text-sm text-gray-500">Configure schedules</p>
+                      <p className="text-sm text-gray-500">Configure schedule</p>
                     </div>
                   </div>
                 </button>
@@ -354,7 +297,7 @@ export default function CalendarPage() {
                 Calendar Active
               </h3>
               <p className="text-sm text-green-700 leading-relaxed mb-4">
-                Your calendar system is live! Clients calling your AI assistant can now book appointments in real-time.
+                Your calendar is live! Clients can now book appointments with you in real-time through your AI assistant.
               </p>
               <div className="flex items-center text-xs text-green-600">
                 <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>

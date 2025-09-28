@@ -248,7 +248,15 @@ export interface AppointmentRequest {
       phone: string;
     };
   };
-  status: 'pending_review' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'pending_review' | 'pending_booking' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  // Enhanced conversation analysis data
+  conversationAnalysis?: {
+    schedulingIntent?: 'clear' | 'implied' | 'uncertain';
+    emotionalState?: 'calm' | 'anxious' | 'urgent' | 'distressed' | 'hopeful';
+    keyTopics?: string[];
+    followUpNeeded?: boolean;
+    specialRequirements?: string;
+  };
   scheduledAppointment?: {
     date: string;
     time: string;
