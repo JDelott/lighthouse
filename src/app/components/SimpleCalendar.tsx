@@ -13,6 +13,7 @@ interface SimpleCalendarProps {
   onAppointmentBooked?: (appointment: Appointment) => void;
   onDateChange?: (date: string, slots: any[]) => void;
   onAppointmentAction?: (action: 'confirm' | 'cancel', slotId: string) => void;
+  initialDate?: string;
   className?: string;
 }
 
@@ -31,9 +32,11 @@ export default function SimpleCalendar({
   onAppointmentBooked,
   onDateChange,
   onAppointmentAction,
+  initialDate,
   className = ''
 }: SimpleCalendarProps) {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(initialDate || new Date().toISOString().split('T')[0]);
+  const [displayDate, setDisplayDate] = useState(initialDate || new Date().toISOString().split('T')[0]);
   const [allSlots, setAllSlots] = useState<SlotWithStatus[]>([]);
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState<string | null>(null); // Track which slot is being booked
@@ -48,7 +51,9 @@ export default function SimpleCalendar({
       
       if (result.success) {
         setAllSlots(result.data.allSlots);
-        // Notify parent of date change and slots data
+        // FORCE displayDate to match selectedDate
+        setDisplayDate(selectedDate);
+        // Notify parent of date change and slots data - use the SAME date that was requested
         if (onDateChange) {
           onDateChange(selectedDate, result.data.allSlots);
         }
@@ -65,7 +70,7 @@ export default function SimpleCalendar({
 
   useEffect(() => {
     loadAvailability();
-  }, [loadAvailability]);
+  }, [selectedDate]); // Directly depend on selectedDate, not loadAvailability
 
   const handleBookSlot = async (slot: AvailableSlot) => {
     if (!clientInfo) {
@@ -138,10 +143,16 @@ export default function SimpleCalendar({
   const getNextWeekDays = () => {
     const days = [];
     const today = new Date();
+    
     for (let i = 0; i < 7; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
+      // Use local date string to avoid timezone issues
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
       days.push({
         date: dateStr,
         label: formatDate(dateStr),
@@ -155,7 +166,7 @@ export default function SimpleCalendar({
     <div className={`bg-white border border-gray-200 rounded-lg p-6 ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-medium text-gray-900">
-          {allSlots.filter(s => !s.isBooked).length} available slots on {formatDate(selectedDate)}
+          {allSlots.filter(s => !s.isBooked).length} available slot{allSlots.filter(s => !s.isBooked).length !== 1 ? 's' : ''} on {formatDate(displayDate)}
         </h3>
         {loading && (
           <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -187,10 +198,18 @@ export default function SimpleCalendar({
            <span>Select Date</span>
          </h3>
          <div className="grid grid-cols-7 gap-2 p-4 bg-gray-50 rounded-xl border border-gray-200">
-           {getNextWeekDays().map((day) => (
+           {getNextWeekDays().map((day, index) => (
              <button
                key={day.date}
-               onClick={() => setSelectedDate(day.date)}
+               onClick={() => {
+                // IMMEDIATELY sync everything
+                setSelectedDate(day.date);
+                setDisplayDate(day.date);
+                // FORCE parent update immediately
+                if (onDateChange) {
+                  onDateChange(day.date, []);
+                }
+              }}
                className={`relative flex flex-col items-center justify-center p-3 rounded-lg text-center transition-all duration-200 hover:scale-105 ${
                  selectedDate === day.date
                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25 transform scale-105'

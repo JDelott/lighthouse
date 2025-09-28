@@ -7,11 +7,27 @@ import DeleteCallButton from './DeleteCallButton';
 
 interface CallSessionCardProps {
   callSession: VapiCallSession;
+  appointmentRequests?: any[];
   showPatientInfo?: boolean;
   onDeleteSuccess?: (callId: string) => void;
 }
 
-export default function CallSessionCard({ callSession, showPatientInfo = true, onDeleteSuccess }: CallSessionCardProps) {
+export default function CallSessionCard({ callSession, appointmentRequests = [], showPatientInfo = true, onDeleteSuccess }: CallSessionCardProps) {
+  
+  // Find associated appointment request for this call
+  const associatedAppointmentRequest = appointmentRequests.find(
+    req => req.callSessionId === callSession.id
+  );
+  
+  // Get the preferred date from appointment request, fallback to call date
+  const getCalendarDate = () => {
+    if (associatedAppointmentRequest?.appointmentDetails?.preferredDates?.length > 0) {
+      return associatedAppointmentRequest.appointmentDetails.preferredDates[0];
+    }
+    // Fallback to call date if no preferred date found
+    return new Date(callSession.startedAt).toISOString().split('T')[0];
+  };
+
   const getStatusColor = (status: VapiCallSession['status']) => {
     switch (status) {
       case 'in-progress': return 'bg-blue-100 text-blue-800';
@@ -28,7 +44,12 @@ export default function CallSessionCard({ callSession, showPatientInfo = true, o
       return callSession.metadata.clientName;
     }
     
-    // Extract from summary if available
+    // Second, try to get from associated appointment request
+    if (associatedAppointmentRequest?.clientInfo?.fullName) {
+      return associatedAppointmentRequest.clientInfo.fullName;
+    }
+    
+    // Third, extract from summary if available
     if (callSession.summary) {
       // Common patterns for name extraction from AI-generated summaries
       const patterns = [
@@ -185,6 +206,15 @@ export default function CallSessionCard({ callSession, showPatientInfo = true, o
               Listen to Recording
             </a>
           )}
+          <Link
+            href={`/calendar?date=${getCalendarDate()}`}
+            className="text-gray-700 hover:text-black text-sm font-medium flex items-center"
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v12a2 2 0 002 2z" />
+            </svg>
+            View in Calendar
+          </Link>
         </div>
         {(callSession.metadata?.followUpRequired || (callSession.metadata as any)?.referralNeeded) && (
           <Link

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import SimpleCalendar from '../components/SimpleCalendar';
 import RefreshButton from '../components/RefreshButton';
@@ -11,6 +11,7 @@ import { Appointment } from '@/lib/types';
 export default function CalendarPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [loading, setLoading] = useState(true);
   const [calendarKey, setCalendarKey] = useState(0); // Force calendar refresh
@@ -66,6 +67,19 @@ export default function CalendarPage() {
     // Count only the booked/pending slots for this specific date
     const dateFollowUps = dateSlots.filter(slot => slot.isBooked).length;
     setSelectedDateTotal(dateFollowUps);
+  };
+
+  // Format date consistently (same as SimpleCalendar)
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+        month: 'numeric',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
   };
 
   const handleAppointmentAction = async (action: 'confirm' | 'cancel', slotId: string) => {
@@ -363,7 +377,7 @@ export default function CalendarPage() {
                   {selectedDate ? selectedDateTotal : '--'}
                 </div>
                 <div className="text-xs text-green-700">
-                  {selectedDate ? `${new Date(selectedDate).toLocaleDateString()}` : 'Select Date'}
+                  {selectedDate ? formatDate(selectedDate) : 'Select Date'}
                 </div>
               </div>
             </div>
@@ -374,6 +388,7 @@ export default function CalendarPage() {
               onAppointmentBooked={handleAppointmentBooked}
               onDateChange={handleDateChange}
               onAppointmentAction={handleAppointmentAction}
+              initialDate={searchParams.get('date') || undefined}
               className="h-fit"
             />
           </div>

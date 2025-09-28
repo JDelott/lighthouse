@@ -317,6 +317,7 @@ export default function DashboardPage() {
                       <CallSessionCard 
                         key={callSession.id} 
                         callSession={callSession}
+                        appointmentRequests={apiAppointmentRequests}
                         showPatientInfo={true}
                         onDeleteSuccess={(deletedCallId) => {
                           console.log('Call deleted from dashboard:', deletedCallId);
