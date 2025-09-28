@@ -11,6 +11,7 @@ interface SimpleCalendarProps {
     email?: string;
   };
   onAppointmentBooked?: (appointment: Appointment) => void;
+  onDateChange?: (date: string, slots: any[]) => void;
   className?: string;
 }
 
@@ -27,6 +28,7 @@ export default function SimpleCalendar({
   appointmentRequestId, 
   clientInfo, 
   onAppointmentBooked,
+  onDateChange,
   className = ''
 }: SimpleCalendarProps) {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -44,6 +46,10 @@ export default function SimpleCalendar({
       
       if (result.success) {
         setAllSlots(result.data.allSlots);
+        // Notify parent of date change and slots data
+        if (onDateChange) {
+          onDateChange(selectedDate, result.data.allSlots);
+        }
       } else {
         setError(result.error || 'Failed to load slots');
       }

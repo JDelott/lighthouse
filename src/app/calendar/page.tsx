@@ -16,6 +16,8 @@ export default function CalendarPage() {
   const [calendarKey, setCalendarKey] = useState(0); // Force calendar refresh
   const [appointmentRequests, setAppointmentRequests] = useState<any[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedDateTotal, setSelectedDateTotal] = useState(0);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -57,6 +59,13 @@ export default function CalendarPage() {
     // Could show a success notification here
   };
 
+  const handleDateChange = (date: string, dateSlots: any[]) => {
+    setSelectedDate(date);
+    // Count only the booked/pending slots for this specific date
+    const dateFollowUps = dateSlots.filter(slot => slot.isBooked).length;
+    setSelectedDateTotal(dateFollowUps);
+  };
+
   // Load appointment requests that need follow-up
   const loadAppointmentRequests = async () => {
     try {
@@ -69,7 +78,9 @@ export default function CalendarPage() {
       if (result.success) {
         const requests = result.data.appointmentRequests || [];
         setAppointmentRequests(requests);
-        const pending = requests.filter((req: any) => req.status === 'info_gathered').length;
+        const pending = requests.filter((req: any) => 
+          req.status === 'info_gathered' || req.status === 'pending_therapist_review'
+        ).length;
         setPendingCount(pending);
         console.log('✅ Loaded appointment requests:', {
           total: requests.length,
@@ -219,61 +230,62 @@ export default function CalendarPage() {
 
       <main className="max-w-7xl mx-auto px-8 py-12">
         {/* Header Section */}
-        <div className="mb-12">
-          <div className="flex justify-between items-start">
-            <div className="space-y-4">
-              <h1 className="text-4xl font-light text-black leading-tight">
-                Follow-up & Appointment Management
-              </h1>
-              <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
-              <p className="text-xl text-gray-600 font-light leading-relaxed">
-                Review client information and schedule follow-up appointments
-              </p>
-            </div>
-            <RefreshButton 
-              onRefresh={handleRefresh}
-              syncFromVapi={true}
-              className="bg-white border border-gray-200 hover:border-blue-500"
-            />
+        <div className="mb-8">
+          <div className="space-y-4">
+            <h1 className="text-4xl font-light text-black leading-tight">
+              Follow-up & Appointment Management
+            </h1>
+            <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
+            <p className="text-xl text-gray-600 font-light leading-relaxed">
+              Review client information and schedule follow-up appointments
+            </p>
           </div>
         </div>
 
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-12 gap-8">
-          {/* Main Calendar */}
-          <div className="col-span-12 lg:col-span-8">
-            <SimpleCalendar 
-              key={calendarKey}
-              onAppointmentBooked={handleAppointmentBooked}
-              className="h-fit"
-            />
-          </div>
-          
-          {/* Sidebar */}
-          <div className="col-span-12 lg:col-span-4 space-y-6">
-            {/* Follow-up Overview */}
-            <div className="bg-white border border-gray-100 rounded-lg p-6">
-              <h3 className="text-lg font-medium text-black mb-4">Follow-up Overview</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Pending Reviews</span>
-                  <span className="font-medium text-orange-600">{pendingCount}</span>
+        {/* Calendar Section */}
+        <div className="bg-white border border-gray-100 rounded-lg shadow-sm">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-medium text-black">Appointment Calendar</h2>
+                <p className="text-gray-600 mt-1">Select available time slots to schedule follow-up appointments</p>
+              </div>
+              <RefreshButton 
+                onRefresh={handleRefresh}
+                syncFromVapi={true}
+                className="bg-white border border-gray-200 hover:border-blue-500"
+              />
+            </div>
+            
+            {/* Follow-up Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <div className="text-center p-2 bg-orange-50 rounded border border-orange-100">
+                <div className="text-lg font-bold text-orange-600">{pendingCount}</div>
+                <div className="text-xs text-orange-700">Total Pending Follow-ups</div>
+              </div>
+              <div className="text-center p-2 bg-blue-50 rounded border border-blue-100">
+                <div className="text-lg font-bold text-blue-600">
+                  {appointmentRequests.filter(req => req.status === 'follow_up_scheduled').length}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Follow-ups Scheduled</span>
-                  <span className="font-medium text-blue-600">{appointmentRequests.filter(req => req.status === 'follow_up_scheduled').length}</span>
+                <div className="text-xs text-blue-700">Total Scheduled</div>
+              </div>
+              <div className="text-center p-2 bg-green-50 rounded border border-green-100">
+                <div className="text-lg font-bold text-green-600">
+                  {selectedDate ? selectedDateTotal : '--'}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Status</span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span className="font-medium text-green-600 text-sm">Ready for Review</span>
-                  </div>
+                <div className="text-xs text-green-700">
+                  {selectedDate ? `${new Date(selectedDate).toLocaleDateString()}` : 'Select Date'}
                 </div>
               </div>
             </div>
-
-
+          </div>
+          <div className="p-6">
+            <SimpleCalendar 
+              key={calendarKey}
+              onAppointmentBooked={handleAppointmentBooked}
+              onDateChange={handleDateChange}
+              className="h-fit"
+            />
           </div>
         </div>
       </main>
