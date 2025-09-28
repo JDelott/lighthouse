@@ -138,23 +138,29 @@ export default function CalendarPage() {
         const requests = result.data.appointmentRequests || [];
         setAppointmentRequests(requests);
         const pending = requests.filter((req: any) => 
-          req.status === 'info_gathered' || req.status === 'pending_therapist_review'
+          req.status === 'info_gathered' || 
+          req.status === 'pending_therapist_review'
         ).length;
         const scheduled = requests.filter((req: any) => 
           req.status === 'follow_up_scheduled' || req.status === 'appointment_booked'
         ).length;
         
+        
         // Extract confirmed appointments for quick view
         const confirmed = requests.filter((req: any) => req.status === 'appointment_booked');
         setConfirmedAppointments(confirmed);
         setPendingCount(pending);
+        
         console.log('✅ Loaded appointment requests:', {
           total: requests.length,
           pending: pending,
           scheduled: scheduled,
           statuses: requests.map(r => ({ id: r.id, status: r.status })),
-          requests: requests,
-          firstRequest: requests[0]
+          pendingRequests: requests.filter((req: any) => 
+            req.status === 'info_gathered' || 
+            req.status === 'pending_therapist_review'
+          ),
+          allStatuses: [...new Set(requests.map(r => r.status))]
         });
       } else {
         console.error('❌ Failed to load appointment requests:', result.error);
