@@ -14,6 +14,8 @@ export default function CalendarPage() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [loading, setLoading] = useState(true);
   const [calendarKey, setCalendarKey] = useState(0); // Force calendar refresh
+  const [appointmentRequests, setAppointmentRequests] = useState<any[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -38,10 +40,11 @@ export default function CalendarPage() {
     }
   }, [session, status, router]);
 
-  // Set loading to false after session loads
+  // Set loading to false after session loads and load data
   useEffect(() => {
     if (session) {
       setLoading(false);
+      loadAppointmentRequests();
     }
   }, [session]);
 
@@ -54,10 +57,47 @@ export default function CalendarPage() {
     // Could show a success notification here
   };
 
+  // Load appointment requests that need follow-up
+  const loadAppointmentRequests = async () => {
+    try {
+      console.log('📋 Loading appointment requests...');
+      const response = await fetch('/api/calls');
+      const result = await response.json();
+      
+      console.log('📋 API response:', result);
+      
+      if (result.success) {
+        const requests = result.data.appointmentRequests || [];
+        setAppointmentRequests(requests);
+        const pending = requests.filter((req: any) => req.status === 'info_gathered').length;
+        setPendingCount(pending);
+        console.log('✅ Loaded appointment requests:', {
+          total: requests.length,
+          pending: pending,
+          requests: requests,
+          firstRequest: requests[0]
+        });
+      } else {
+        console.error('❌ Failed to load appointment requests:', result.error);
+      }
+    } catch (error) {
+      console.error('❌ Error loading appointment requests:', error);
+    }
+  };
+
   const handleRefresh = async () => {
     console.log('🔄 Refreshing calendar data...');
-    // Force calendar component to refresh by changing key
-    setCalendarKey(prev => prev + 1);
+    try {
+      // Force calendar component to refresh by changing key
+      setCalendarKey(prev => prev + 1);
+      console.log('📅 Calendar key updated');
+      
+      // Also refresh appointment requests
+      await loadAppointmentRequests();
+      console.log('✅ Calendar refresh completed');
+    } catch (error) {
+      console.error('❌ Error during calendar refresh:', error);
+    }
   };
 
   // Show loading state
@@ -183,11 +223,11 @@ export default function CalendarPage() {
           <div className="flex justify-between items-start">
             <div className="space-y-4">
               <h1 className="text-4xl font-light text-black leading-tight">
-                Appointment Calendar
+                Follow-up & Appointment Management
               </h1>
               <div className="w-16 h-px bg-gradient-to-r from-blue-500 to-cyan-400"></div>
               <p className="text-xl text-gray-600 font-light leading-relaxed">
-                Manage your schedule and book appointments in real-time
+                Review client information and schedule follow-up appointments
               </p>
             </div>
             <RefreshButton 
@@ -211,23 +251,23 @@ export default function CalendarPage() {
           
           {/* Sidebar */}
           <div className="col-span-12 lg:col-span-4 space-y-6">
-            {/* Today's Overview */}
+            {/* Follow-up Overview */}
             <div className="bg-white border border-gray-100 rounded-lg p-6">
-              <h3 className="text-lg font-medium text-black mb-4">Today's Overview</h3>
+              <h3 className="text-lg font-medium text-black mb-4">Follow-up Overview</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Appointments Today</span>
-                  <span className="font-medium text-black">0</span>
+                  <span className="text-gray-600">Pending Reviews</span>
+                  <span className="font-medium text-orange-600">{pendingCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Available Slots</span>
-                  <span className="font-medium text-green-600">8</span>
+                  <span className="text-gray-600">Follow-ups Scheduled</span>
+                  <span className="font-medium text-blue-600">{appointmentRequests.filter(req => req.status === 'follow_up_scheduled').length}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Status</span>
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span className="font-medium text-green-600 text-sm">Available</span>
+                    <span className="font-medium text-green-600 text-sm">Ready for Review</span>
                   </div>
                 </div>
               </div>
@@ -238,35 +278,35 @@ export default function CalendarPage() {
               <h3 className="text-lg font-medium text-black mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <button 
-                  onClick={() => console.log('Block time clicked')}
+                  onClick={() => console.log('Review pending clicked')}
                   className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
                       <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">Block Time</p>
-                      <p className="text-sm text-gray-500">Mark unavailable</p>
+                      <p className="font-medium text-gray-900">Review Pending</p>
+                      <p className="text-sm text-gray-500">Check new requests</p>
                     </div>
                   </div>
                 </button>
                 
                 <button 
-                  onClick={() => console.log('Working hours clicked')}
+                  onClick={() => console.log('Schedule follow-up clicked')}
                   className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                       <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">Working Hours</p>
-                      <p className="text-sm text-gray-500">Configure schedule</p>
+                      <p className="font-medium text-gray-900">Schedule Follow-up</p>
+                      <p className="text-sm text-gray-500">Book appointment</p>
                     </div>
                   </div>
                 </button>
@@ -290,18 +330,60 @@ export default function CalendarPage() {
               </div>
             </div>
 
+            {/* Pending Requests */}
+            {pendingCount > 0 && (
+              <div className="bg-orange-50 border border-orange-100 rounded-lg p-6">
+                <h3 className="text-lg font-medium text-black mb-4">
+                  <span className="mr-2">📋</span>
+                  Pending Follow-ups ({pendingCount})
+                </h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {appointmentRequests
+                    .filter(req => req.status === 'info_gathered')
+                    .slice(0, 5)
+                    .map((request: any) => (
+                    <div key={request.id} className="bg-white rounded-lg p-3 border border-orange-200">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {request.clientInfo?.fullName || 'Unknown Client'}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {request.clientInfo?.phone || 'No phone'}
+                          </p>
+                          {request.appointmentDetails?.preferredDates?.length > 0 && (
+                            <p className="text-xs text-orange-600 mt-1">
+                              Prefers: {request.appointmentDetails.preferredDates.join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                          New
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {pendingCount > 5 && (
+                  <p className="text-xs text-orange-600 mt-2">
+                    +{pendingCount - 5} more pending reviews
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Status Card */}
-            <div className="bg-green-50 border border-green-100 rounded-lg p-6">
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
               <h3 className="text-lg font-medium text-black mb-3">
-                <span className="mr-2">📅</span>
-                Calendar Active
+                <span className="mr-2">🤖</span>
+                AI Information Gathering Active
               </h3>
-              <p className="text-sm text-green-700 leading-relaxed mb-4">
-                Your calendar is live! Clients can now book appointments with you in real-time through your AI assistant.
+              <p className="text-sm text-blue-700 leading-relaxed mb-4">
+                Your AI assistant is collecting detailed client information and creating follow-up tasks for your personal review and scheduling.
               </p>
-              <div className="flex items-center text-xs text-green-600">
-                <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                Real-time booking enabled
+              <div className="flex items-center text-xs text-blue-600">
+                <div className="w-2 h-2 bg-blue-400 rounded-full mr-2"></div>
+                Information gathering & follow-up workflow active
               </div>
             </div>
           </div>

@@ -248,17 +248,17 @@ export default function SimpleCalendar({
                       </div>
                       <div className="text-right">
                         <p className={`text-sm font-medium ${
-                          isBooked ? 'text-red-600' : 'text-green-600'
+                          isBooked ? 'text-orange-600' : 'text-green-600'
                         }`}>
-                          {isBooked ? 'Booked' : 'Available'}
+                          {isBooked ? 'Follow-up Scheduled' : 'Available'}
                         </p>
                       </div>
                     </div>
                   </div>
                   <div className="ml-4">
                     {isBooked ? (
-                      <span className="px-4 py-2 text-sm text-gray-500 bg-gray-100 rounded-lg">
-                        Unavailable
+                      <span className="px-4 py-2 text-sm text-orange-700 bg-orange-100 rounded-lg">
+                        Pending Follow-up
                       </span>
                     ) : (
                       <button
@@ -275,10 +275,10 @@ export default function SimpleCalendar({
                         {isBooking ? (
                           <div className="flex items-center space-x-2">
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            <span>Booking...</span>
+                            <span>Scheduling...</span>
                           </div>
                         ) : (
-                          'Book Appointment'
+                          'Schedule Follow-up'
                         )}
                       </button>
                     )}
@@ -294,8 +294,8 @@ export default function SimpleCalendar({
       {!clientInfo && (
         <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-yellow-800 text-sm">
-            <strong>Note:</strong> Client information is required to book appointments. 
-            This component is typically used with appointment request data.
+            <strong>Note:</strong> Client information is required to schedule follow-up appointments. 
+            This component is typically used with client information gathered by the AI assistant.
           </p>
         </div>
       )}

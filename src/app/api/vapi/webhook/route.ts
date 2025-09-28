@@ -234,16 +234,16 @@ async function handleFunctionCall(event: VapiWebhookEvent) {
   
   // Handle specific function calls from the AI assistant
   switch (functionData.functionCall?.name) {
-    case 'schedule_appointment':
-      await handleScheduleAppointment(event.callId, functionData.functionCall.parameters);
+    case 'gather_appointment_info':
+      await handleGatherAppointmentInfo(event.callId, functionData.functionCall.parameters);
       break;
     
     case 'collect_intake_info':
       await handleCollectIntakeInfo(event.callId, functionData.functionCall.parameters);
       break;
     
-    case 'send_confirmation':
-      await handleSendConfirmation(event.callId, functionData.functionCall.parameters);
+    case 'create_follow_up_task':
+      await handleCreateFollowUpTask(event.callId, functionData.functionCall.parameters);
       break;
     
     default:
@@ -251,8 +251,8 @@ async function handleFunctionCall(event: VapiWebhookEvent) {
   }
 }
 
-async function handleScheduleAppointment(callId: string, parameters: unknown) {
-  console.log('🗓️ Scheduling appointment for call:', callId, parameters);
+async function handleGatherAppointmentInfo(callId: string, parameters: unknown) {
+  console.log('📝 Gathering appointment info for call:', callId, parameters);
   
   const callSession = realCallSessions.find(session => session.callId === callId);
   if (callSession && typeof parameters === 'object' && parameters !== null) {
@@ -263,23 +263,18 @@ async function handleScheduleAppointment(callId: string, parameters: unknown) {
       callSession.metadata = {};
     }
     
-    // Update call session with appointment details
+    // Update call session with gathered appointment information
     callSession.metadata.appointmentType = params.appointmentType as any;
     callSession.metadata.urgencyLevel = params.urgency as number;
     callSession.metadata.preferredDates = params.preferredDates as string[];
     callSession.metadata.preferredTimes = params.preferredTimes as string[];
-    callSession.metadata.schedulingStatus = 'requested';
+    callSession.metadata.reasonForSeeking = params.reasonForSeeking as string;
+    callSession.metadata.previousTherapy = params.previousTherapy as boolean;
+    callSession.metadata.specialRequests = params.specialRequests as string;
+    callSession.metadata.schedulingStatus = 'info_gathered';
     callSession.callType = 'appointment_request';
     
-    console.log('✅ Updated call session with appointment request');
-
-    // NEW: Try to book the appointment in real-time if we have enough info
-    try {
-      await attemptRealTimeBooking(callId, params);
-    } catch (error) {
-      console.error('❌ Error during real-time booking:', error);
-      // Continue - the appointment will be processed later when the call ends
-    }
+    console.log('✅ Updated call session with gathered appointment information');
   }
 }
 
@@ -370,19 +365,34 @@ async function handleCollectIntakeInfo(callId: string, parameters: unknown) {
   // 4. Generate intake summary for therapist
 }
 
-async function handleSendConfirmation(callId: string, parameters: unknown) {
-  console.log('Sending confirmation for call:', callId, parameters);
+async function handleCreateFollowUpTask(callId: string, parameters: unknown) {
+  console.log('📋 Creating follow-up task for call:', callId, parameters);
   
   const callSession = realCallSessions.find(session => session.callId === callId);
-  if (callSession && callSession.metadata) {
-    callSession.metadata.schedulingStatus = 'scheduled';
+  if (callSession && typeof parameters === 'object' && parameters !== null) {
+    const params = parameters as Record<string, unknown>;
+    
+    // Ensure metadata exists
+    if (!callSession.metadata) {
+      callSession.metadata = {};
+    }
+    
+    // Update call session with follow-up task information
+    callSession.metadata.followUpPriority = params.priority as string;
+    callSession.metadata.clientSummary = params.clientSummary as string;
+    callSession.metadata.recommendedAction = params.recommendedAction as string;
+    callSession.metadata.keyNotes = params.keyNotes as string;
+    callSession.metadata.contactPreference = params.contactPreference as string;
+    callSession.metadata.schedulingStatus = 'pending_therapist_review';
+    
+    console.log('✅ Created follow-up task for therapist review');
   }
   
   // In a real implementation:
-  // 1. Send email/SMS confirmation
-  // 2. Include appointment preparation materials
-  // 3. Add to client's calendar
-  // 4. Set appointment reminders
+  // 1. Create task in therapist's task management system
+  // 2. Send notification to therapist based on priority
+  // 3. Schedule follow-up reminders
+  // 4. Update client status to "awaiting follow-up"
 }
 
 async function notifyTherapistUrgent(callSession: VapiCallSession) {

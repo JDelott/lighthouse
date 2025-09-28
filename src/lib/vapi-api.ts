@@ -237,10 +237,26 @@ export async function fetchAndProcessCalls(): Promise<{
             const appointmentRequest: AppointmentRequest = {
               id: `appt-req-${callSession.id}`,
               callSessionId: callSession.id,
-              clientInfo: appointmentData.clientInfo || {},
-              appointmentDetails: appointmentData.appointmentDetails || {},
-              intakeInfo: appointmentData.intakeInfo || {},
-              status: 'pending_review',
+              clientInfo: appointmentData.clientInfo || {
+                fullName: callSession.metadata?.clientName || 'Unknown',
+                phone: callSession.clientPhone || 'Unknown'
+              },
+              appointmentDetails: appointmentData.appointmentDetails || {
+                type: 'initial_consultation',
+                urgency: 2,
+                duration: 60,
+                preferredDates: [],
+                preferredTimes: []
+              },
+              intakeInfo: appointmentData.intakeInfo,
+              status: 'info_gathered',
+              conversationAnalysis: {
+                schedulingIntent: (appointmentData.appointmentDetails?.preferredDates?.length || 0) > 0 ? 'clear' : 'implied',
+                emotionalState: 'calm', // Default for now
+                keyTopics: [],
+                followUpNeeded: true,
+                specialRequirements: appointmentData.appointmentDetails?.notes
+              },
               createdAt: callSession.createdAt,
               updatedAt: new Date().toISOString()
             };

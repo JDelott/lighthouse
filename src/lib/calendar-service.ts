@@ -231,17 +231,17 @@ export async function bookAppointment(appointment: Omit<Appointment, 'id' | 'cre
 // Update appointment request status after booking
 export async function updateAppointmentRequestStatus(
   appointmentRequestId: string,
-  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled',
+  status: 'info_gathered' | 'pending_therapist_review' | 'follow_up_scheduled' | 'appointment_booked' | 'completed' | 'cancelled',
   appointmentId?: string
 ): Promise<void> {
   const client = await pool.connect();
   try {
     const updateData: any = { status, updated_at: new Date().toISOString() };
     
-    if (appointmentId && status === 'scheduled') {
+    if (appointmentId && status === 'appointment_booked') {
       updateData.scheduled_appointment = {
         appointmentId,
-        status: 'scheduled'
+        status: 'appointment_booked'
       };
     }
     

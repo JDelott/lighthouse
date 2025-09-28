@@ -50,12 +50,23 @@ export async function POST(request: NextRequest) {
     console.log('   Status:', callSession.status);
     console.log('   Organization:', session.user.organizationId);
 
-    // NEW: Process completed calls for appointment booking
+    // Process completed calls for appointment booking (check for duplicates first)
     if (callSession.status === 'completed' && callSession.transcript) {
       console.log('🤖 Processing completed call for appointments...');
-      const callSessionWithOrg = { ...callSession, organizationId: session.user.organizationId };
-      await processCompletedCall(callSessionWithOrg);
-      console.log('✅ Appointment processing completed');
+      
+      // Check if appointment request already exists to avoid duplicates
+      const { getAppointmentRequests } = await import('@/lib/database');
+      const existingRequests = await getAppointmentRequests(session.user.organizationId);
+      const existingRequest = existingRequests.find(req => req.callSessionId === callSession.id);
+      
+      if (existingRequest) {
+        console.log('ℹ️ Appointment request already exists for call:', callSession.id);
+        console.log('📋 Existing request:', existingRequest);
+      } else {
+        const callSessionWithOrg = { ...callSession, organizationId: session.user.organizationId };
+        await processCompletedCall(callSessionWithOrg);
+        console.log('✅ Appointment processing completed');
+      }
     } else if (callSession.status === 'completed') {
       console.log('⚠️ Call completed but no transcript available');
     } else {

@@ -248,7 +248,7 @@ export interface AppointmentRequest {
       phone: string;
     };
   };
-  status: 'pending_review' | 'pending_booking' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'info_gathered' | 'pending_therapist_review' | 'follow_up_scheduled' | 'appointment_booked' | 'completed' | 'cancelled';
   // Enhanced conversation analysis data
   conversationAnalysis?: {
     schedulingIntent?: 'clear' | 'implied' | 'uncertain';

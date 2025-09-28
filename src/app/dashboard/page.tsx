@@ -295,7 +295,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-xl font-medium text-black">Recent Calls</h2>
-                    <p className="text-sm text-gray-600 mt-1">AI appointment scheduling and patient interactions</p>
+                    <p className="text-sm text-gray-600 mt-1">AI information gathering and follow-up preparation</p>
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="text-sm text-gray-500">
@@ -333,7 +333,7 @@ export default function DashboardPage() {
                     </div>
                     <h3 className="text-lg font-medium text-black mb-2">No calls yet</h3>
                     <p className="text-gray-500 max-w-sm mx-auto">
-                      Clients can call {formatPhoneForDisplay(config.vapi.phoneNumber)} to schedule appointments with the AI assistant.
+                      Clients can call {formatPhoneForDisplay(config.vapi.phoneNumber)} to share their information with the AI assistant for follow-up.
                     </p>
                   </div>
                 )}

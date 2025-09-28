@@ -33,6 +33,13 @@ export async function GET(request: NextRequest) {
     const appointmentRequests = await getAppointmentRequests(session.user.organizationId);
     const therapistNotes = await getTherapistNotes(session.user.organizationId);
     
+    console.log('📊 API /calls response data:', {
+      callSessions: callSessions.length,
+      appointmentRequests: appointmentRequests.length,
+      therapistNotes: therapistNotes.length,
+      appointmentRequestsPreview: appointmentRequests.slice(0, 2)
+    });
+    
     return NextResponse.json({
       success: true,
       data: {

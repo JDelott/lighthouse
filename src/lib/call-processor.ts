@@ -1,4 +1,5 @@
 import { VapiCallSession, VapiTranscriptEntry, AppointmentRequest, TherapistNote } from './types';
+import { saveAppointmentRequest } from './database';
 
 // Real call session storage (in-memory for server-side operations)
 export let realCallSessions: VapiCallSession[] = [];
@@ -64,20 +65,21 @@ export async function summarizeCallForTherapist(transcript: string, callMetadata
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 500,
         temperature: 0.3,
-        system: `You are a clinical assistant helping therapists review AI-assisted appointment scheduling calls. 
+        system: `You are a clinical assistant helping therapists review AI-assisted information gathering calls. 
         
         Create a concise, professional summary for the therapist that includes:
         1. Client's main concerns/reasons for seeking therapy
-        2. Appointment type and urgency level
-        3. Key clinical insights or red flags
-        4. Insurance/scheduling details
-        5. Recommended next steps or follow-up actions
+        2. Emotional state and urgency assessment
+        3. Key clinical insights or red flags that require attention
+        4. Information gathered (contact details, preferences, background)
+        5. Recommended follow-up actions and priority level
+        6. Suggested appointment type and any special considerations
         
-        Keep it clinical, objective, and actionable. Focus on what the therapist needs to know.`,
+        Focus on preparing the therapist for a meaningful follow-up call. Keep it clinical, objective, and actionable.`,
         messages: [
           {
             role: 'user',
-            content: `Please summarize this therapy appointment scheduling call:
+            content: `Please summarize this therapy information gathering call:
             
             Transcript: ${transcript}
             
@@ -131,26 +133,37 @@ export async function parseAppointmentDetails(transcript: string): Promise<Parti
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 400,
         temperature: 0.1,
-        system: `Extract basic appointment information from this therapy call transcript.
+        system: `Extract comprehensive client information from this therapy information gathering call.
 
         Return ONLY a JSON object with this structure:
         {
           "clientInfo": {
             "fullName": "client name if mentioned",
-            "phone": "phone number if mentioned"
+            "phone": "phone number if mentioned",
+            "email": "email if mentioned"
           },
           "appointmentDetails": {
+            "type": "type of therapy requested (initial_consultation, couples_therapy, etc.)",
+            "urgency": "urgency level 1-5 based on client's needs",
             "preferredDates": ["dates mentioned in YYYY-MM-DD format"],
             "preferredTimes": ["times mentioned"],
-            "notes": "brief summary of what client wants"
+            "duration": "preferred session length in minutes",
+            "notes": "scheduling preferences and special requests"
+          },
+          "intakeInfo": {
+            "reasonForSeeking": "why they're seeking therapy",
+            "previousTherapy": "boolean - have they been in therapy before",
+            "currentMedications": "any medications mentioned",
+            "emergencyContact": "emergency contact info if provided"
           }
         }
 
         IMPORTANT: 
         - Today's date is ${new Date().toISOString().split('T')[0]}
         - Convert relative dates like "tomorrow", "next week", "Monday" to actual YYYY-MM-DD dates
-        - If no specific date is mentioned but they want to schedule, use tomorrow's date
-        - Only extract information that is explicitly mentioned. Use null for missing data.`,
+        - Assess urgency based on client's emotional state and needs (1=routine, 5=urgent)
+        - Extract as much information as possible to help therapist prepare for follow-up
+        - Use null for missing data, don't make assumptions`,
         messages: [
           {
             role: 'user',
@@ -250,6 +263,96 @@ function extractClientNameFromTranscript(transcript?: string): string | undefine
   return undefined;
 }
 
+// Create appointment request for therapist review instead of direct booking
+async function createAppointmentRequestForReview(appointmentData: Partial<AppointmentRequest>, callSession: VapiCallSession & { organizationId?: string }): Promise<void> {
+  try {
+    const appointmentRequest: AppointmentRequest = {
+      id: `appt-req-${callSession.id}-${Date.now()}`,
+      callSessionId: callSession.id,
+      clientInfo: appointmentData.clientInfo || {
+        fullName: callSession.metadata?.clientName || 'Unknown',
+        phone: callSession.clientPhone || 'Unknown'
+      },
+      appointmentDetails: appointmentData.appointmentDetails || {
+        type: 'initial_consultation',
+        urgency: 2,
+        duration: 60,
+        preferredDates: [],
+        preferredTimes: []
+      },
+      intakeInfo: appointmentData.intakeInfo,
+      status: 'info_gathered',
+      conversationAnalysis: {
+        schedulingIntent: (appointmentData.appointmentDetails?.preferredDates?.length || 0) > 0 ? 'clear' : 'implied',
+        emotionalState: determineEmotionalState(callSession.transcript),
+        keyTopics: extractKeyTopics(callSession.transcript),
+        followUpNeeded: true,
+        specialRequirements: appointmentData.appointmentDetails?.notes
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    // Save to database
+    await saveAppointmentRequest(appointmentRequest);
+    
+    console.log('✅ Created appointment request for therapist review:', appointmentRequest.id);
+    
+  } catch (error) {
+    console.error('❌ Error creating appointment request for review:', error);
+  }
+}
+
+// Helper function to determine emotional state from transcript
+function determineEmotionalState(transcript?: string): 'calm' | 'anxious' | 'urgent' | 'distressed' | 'hopeful' {
+  if (!transcript) return 'calm';
+  
+  const lowerTranscript = transcript.toLowerCase();
+  
+  if (lowerTranscript.includes('urgent') || lowerTranscript.includes('emergency') || lowerTranscript.includes('crisis')) {
+    return 'urgent';
+  }
+  if (lowerTranscript.includes('anxious') || lowerTranscript.includes('worried') || lowerTranscript.includes('stressed')) {
+    return 'anxious';
+  }
+  if (lowerTranscript.includes('depressed') || lowerTranscript.includes('sad') || lowerTranscript.includes('overwhelmed')) {
+    return 'distressed';
+  }
+  if (lowerTranscript.includes('hope') || lowerTranscript.includes('better') || lowerTranscript.includes('help')) {
+    return 'hopeful';
+  }
+  
+  return 'calm';
+}
+
+// Helper function to extract key topics from transcript
+function extractKeyTopics(transcript?: string): string[] {
+  if (!transcript) return [];
+  
+  const topics: string[] = [];
+  const lowerTranscript = transcript.toLowerCase();
+  
+  // Common therapy topics
+  const topicKeywords = {
+    'anxiety': ['anxiety', 'anxious', 'panic', 'worry'],
+    'depression': ['depression', 'depressed', 'sad', 'down'],
+    'relationships': ['relationship', 'marriage', 'partner', 'spouse', 'dating'],
+    'family': ['family', 'parents', 'children', 'kids'],
+    'work_stress': ['work', 'job', 'career', 'boss', 'workplace'],
+    'trauma': ['trauma', 'ptsd', 'abuse', 'accident'],
+    'grief': ['grief', 'loss', 'death', 'died'],
+    'addiction': ['addiction', 'drinking', 'drugs', 'substance']
+  };
+  
+  for (const [topic, keywords] of Object.entries(topicKeywords)) {
+    if (keywords.some(keyword => lowerTranscript.includes(keyword))) {
+      topics.push(topic);
+    }
+  }
+  
+  return topics;
+}
+
 // Process completed call and generate therapist materials
 export async function processCompletedCall(callSession: VapiCallSession & { organizationId?: string }): Promise<void> {
   try {
@@ -281,7 +384,7 @@ export async function processCompletedCall(callSession: VapiCallSession & { orga
       callSession.summary = aiSummary;
     }
 
-    // 2. Extract appointment data and book directly
+    // 2. Extract appointment data and create follow-up task
     if (callSession.transcript) {
       console.log('📝 TRANSCRIPT FOUND - Extracting appointment data...');
       console.log('📄 Transcript preview:', callSession.transcript.substring(0, 200) + '...');
@@ -305,18 +408,12 @@ export async function processCompletedCall(callSession: VapiCallSession & { orga
         console.log('✅ Set client name from appointment data:', appointmentData.clientInfo.fullName);
       }
       
-      // If we have client info and they want to schedule, book it directly
-      if (appointmentData.clientInfo?.fullName && appointmentData.appointmentDetails?.preferredDates?.length > 0) {
-        console.log('📅 Booking appointment directly for:', appointmentData.clientInfo.fullName);
-        console.log('📅 Preferred dates:', appointmentData.appointmentDetails.preferredDates);
-        await bookAppointmentDirectly(appointmentData, callSession.organizationId);
+      // Create appointment request for therapist review
+      if (appointmentData.clientInfo?.fullName || appointmentData.appointmentDetails) {
+        console.log('📋 Creating appointment request for therapist review:', appointmentData.clientInfo?.fullName);
+        await createAppointmentRequestForReview(appointmentData, callSession);
       } else {
-        console.log('❌ Not enough info to book appointment:', {
-          hasName: !!appointmentData.clientInfo?.fullName,
-          hasDates: !!appointmentData.appointmentDetails?.preferredDates?.length,
-          clientInfo: appointmentData.clientInfo,
-          appointmentDetails: appointmentData.appointmentDetails
-        });
+        console.log('ℹ️ No appointment scheduling information found in call');
       }
     }
 
@@ -564,7 +661,7 @@ async function bookAppointmentDirectly(appointmentData: any, organizationId?: st
       
       const appointment = await bookAppointment({
         organizationId: orgId,
-        appointmentRequestId: null,
+        appointmentRequestId: undefined,
         therapistId: slot.therapistId,
         clientName: clientInfo.fullName,
         clientPhone: clientInfo.phone || 'Unknown',
@@ -591,6 +688,8 @@ async function bookAppointmentDirectly(appointmentData: any, organizationId?: st
     
   } catch (error) {
     console.error('💥 Error booking appointment:', error);
-    console.error('💥 Error stack:', error.stack);
+    if (error instanceof Error) {
+      console.error('💥 Error stack:', error.stack);
+    }
   }
 }

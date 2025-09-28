@@ -17,10 +17,16 @@ export async function GET(request: NextRequest) {
         await saveCallSession(callSession);
       }
       
-      // Save all appointment requests
-      for (const appointmentRequest of result.appointmentRequests) {
+    // Save all appointment requests (check for duplicates)
+    for (const appointmentRequest of result.appointmentRequests) {
+      try {
         await saveAppointmentRequest(appointmentRequest);
+        console.log('✅ Saved appointment request:', appointmentRequest.id);
+      } catch (error) {
+        // Might be a duplicate - that's okay
+        console.log('ℹ️ Appointment request may already exist:', appointmentRequest.id);
       }
+    }
       
       // Save all therapist notes
       for (const therapistNote of result.therapistNotes) {
