@@ -17,12 +17,17 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
+        console.log('🔍 Auth Debug: Starting authorization for:', credentials?.email);
+        
         if (!credentials?.email || !credentials?.password) {
+          console.log('❌ Auth Debug: Missing credentials');
           return null;
         }
 
         const client = await pool.connect();
         try {
+          console.log('🔍 Auth Debug: Attempting to find user:', credentials.email);
+          
           const userResult = await client.query(
             `SELECT u.*, o.name as org_name, o.plan_type, o.phone_number as org_phone 
              FROM users u 
@@ -31,16 +36,24 @@ export const authOptions: NextAuthOptions = {
             [credentials.email]
           );
 
+          console.log('🔍 Auth Debug: Query result:', userResult.rows.length, 'rows found');
+          
           const user = userResult.rows[0];
           if (!user || !user.password) {
+            console.log('❌ Auth Debug: User not found or no password');
             return null;
           }
 
+          console.log('🔍 Auth Debug: User found, checking password...');
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          console.log('🔍 Auth Debug: Password valid:', isPasswordValid);
+          
           if (!isPasswordValid) {
+            console.log('❌ Auth Debug: Invalid password');
             return null;
           }
 
+          console.log('✅ Auth Debug: Authentication successful for:', user.email);
           return {
             id: user.id,
             email: user.email,
@@ -54,6 +67,9 @@ export const authOptions: NextAuthOptions = {
               phoneNumber: user.org_phone
             },
           };
+        } catch (error) {
+          console.error('❌ Auth Debug: Database error:', error);
+          return null;
         } finally {
           client.release();
         }
