@@ -1,11 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  dummyVapiCallSessions, 
-  getVapiCallSessionsByStatus, 
-  getRecentVapiCallSessions,
-  getVapiCallSessionsByPatient,
-  findVapiCallSessionById 
-} from '@/lib/dummy-data';
 import { getAllCallSessions, getCallSessionById } from '@/lib/call-processor';
 
 // GET /api/vapi/calls - Retrieve call sessions with filtering

@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  dummyVapiTranscripts,
-  getTranscriptsByCallSession 
-} from '@/lib/dummy-data';
 import { realTranscripts, getTranscriptsByCallId } from '@/lib/call-processor';
 
 // GET /api/vapi/transcripts - Get transcripts with filtering
