@@ -3,11 +3,8 @@ import { VapiCallSession, VapiTranscriptEntry, AppointmentRequest, TherapistNote
 
 // Database connection pool
 const pool = new Pool({
-  user: process.env.DB_USER || process.env.USER || 'jacobdelott',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'lighthouse_db',
-  password: process.env.DB_PASSWORD || '',
-  port: parseInt(process.env.DB_PORT || '5432'),
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -16,6 +13,10 @@ const pool = new Pool({
 // Test connection
 pool.on('connect', () => {
   console.log('🐘 Connected to PostgreSQL database');
+  console.log('🔍 Database connection details:', {
+    connectionString: process.env.DATABASE_URL ? 'Using DATABASE_URL' : 'Using individual params',
+    host: process.env.DB_HOST || 'localhost'
+  });
 });
 
 pool.on('error', (err) => {
