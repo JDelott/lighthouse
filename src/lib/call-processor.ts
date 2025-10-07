@@ -53,6 +53,8 @@ export async function summarizeCallForTherapist(transcript: string, callMetadata
     }
     
     console.log('🤖 Calling Anthropic API for call summarization...');
+    console.log('📄 Transcript length:', transcript.length);
+    console.log('📋 Call metadata:', callMetadata);
     
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -105,7 +107,12 @@ export async function summarizeCallForTherapist(transcript: string, callMetadata
     return data.content[0]?.text || 'Summary generation failed';
     
   } catch (error) {
-    console.error('Error generating call summary:', error);
+    console.error('❌ Error generating call summary:', error);
+    console.error('❌ Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     return 'Unable to generate summary - please review transcript manually';
   }
 }

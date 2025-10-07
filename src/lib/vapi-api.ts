@@ -120,6 +120,11 @@ function extractClientNameFromTranscript(transcript?: string): string | undefine
 
 // Convert Vapi call to our VapiCallSession format
 export function convertVapiCallToSession(vapiCall: VapiCall): VapiCallSession {
+  console.log(`🔍 Converting Vapi call ${vapiCall.id}:`);
+  console.log(`   Status: ${vapiCall.status}`);
+  console.log(`   Has transcript: ${!!vapiCall.transcript}`);
+  console.log(`   Transcript length: ${vapiCall.transcript?.length || 0}`);
+  
   // Extract client name from transcript
   const clientName = extractClientNameFromTranscript(vapiCall.transcript);
   

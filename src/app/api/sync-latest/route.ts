@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       }, { status: 401 });
     }
 
-    console.log('🔄 Syncing latest call from Vapi API...');
+    console.log('🔄 Syncing all recent calls from Vapi API...');
 
     // Fetch all calls from Vapi
     const vapiCalls = await fetchVapiCalls();
@@ -29,59 +29,65 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get the most recent call
-    const latestCall = vapiCalls[0]; // They should be sorted by date already
-    console.log('📞 Latest call found:', {
+    console.log(`📞 Found ${vapiCalls.length} calls from Vapi API`);
+
+    // Get existing call sessions to avoid duplicates
+    const { getCallSessions, getAppointmentRequests } = await import('@/lib/database');
+    const existingCallSessions = await getCallSessions(session.user.organizationId);
+    const existingCallIds = new Set(existingCallSessions.map(call => call.callId));
+    const existingRequests = await getAppointmentRequests(session.user.organizationId);
+
+    let processedCount = 0;
+    let newAppointmentRequests = 0;
+
+    // Process all calls, focusing on completed ones with transcripts
+    for (const vapiCall of vapiCalls) {
+      try {
+        // Convert to our format
+        const callSession = convertVapiCallToSession(vapiCall);
+
+        // Save to database if not already exists
+        if (!existingCallIds.has(vapiCall.id)) {
+          await saveCallSession(callSession, session.user.organizationId);
+          processedCount++;
+          console.log(`✅ Saved new call: ${callSession.id} (${callSession.status})`);
+        }
+
+        // Process completed calls with transcripts for appointments
+        if (callSession.status === 'completed' && callSession.transcript) {
+          const existingRequest = existingRequests.find(req => req.callSessionId === callSession.id);
+          
+          if (!existingRequest) {
+            console.log(`🤖 Processing completed call for appointments: ${callSession.id}`);
+            const callSessionWithOrg = { ...callSession, organizationId: session.user.organizationId };
+            await processCompletedCall(callSessionWithOrg);
+            newAppointmentRequests++;
+            console.log(`✅ Created appointment request for call: ${callSession.id}`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error processing call ${vapiCall.id}:`, error);
+      }
+    }
+
+    const latestCall = vapiCalls[0];
+    console.log('📞 Latest call:', {
       id: latestCall.id,
       phone: latestCall.customer?.number,
       status: latestCall.status,
       createdAt: latestCall.createdAt
     });
 
-    // Convert to our format
-    const callSession = convertVapiCallToSession(latestCall);
-
-    // Save to local database with user's organization
-    await saveCallSession(callSession, session.user.organizationId);
-
-    console.log('✅ Latest call synced to local database:');
-    console.log('   Call ID:', callSession.id);
-    console.log('   Phone:', callSession.clientPhone);
-    console.log('   Status:', callSession.status);
-    console.log('   Organization:', session.user.organizationId);
-
-    // Process completed calls for appointment booking (check for duplicates first)
-    if (callSession.status === 'completed' && callSession.transcript) {
-      console.log('🤖 Processing completed call for appointments...');
-      
-      // Check if appointment request already exists to avoid duplicates
-      const { getAppointmentRequests } = await import('@/lib/database');
-      const existingRequests = await getAppointmentRequests(session.user.organizationId);
-      const existingRequest = existingRequests.find(req => req.callSessionId === callSession.id);
-      
-      if (existingRequest) {
-        console.log('ℹ️ Appointment request already exists for call:', callSession.id);
-        console.log('📋 Existing request:', existingRequest);
-      } else {
-        const callSessionWithOrg = { ...callSession, organizationId: session.user.organizationId };
-        await processCompletedCall(callSessionWithOrg);
-        console.log('✅ Appointment processing completed');
-      }
-    } else if (callSession.status === 'completed') {
-      console.log('⚠️ Call completed but no transcript available');
-    } else {
-      console.log('ℹ️ Call not yet completed, skipping appointment processing');
-    }
-
     return NextResponse.json({
       success: true,
-      message: 'Latest call synced successfully',
+      message: `Synced ${processedCount} new calls, created ${newAppointmentRequests} appointment requests`,
       data: {
-        callId: callSession.id,
-        clientPhone: callSession.clientPhone,
-        status: callSession.status,
-        organizationId: session.user.organizationId,
-        isNewCall: true // For now, assume it's new
+        totalCalls: vapiCalls.length,
+        newCalls: processedCount,
+        newAppointmentRequests: newAppointmentRequests,
+        latestCallId: latestCall.id,
+        latestCallStatus: latestCall.status,
+        organizationId: session.user.organizationId
       },
       timestamp: new Date().toISOString()
     });

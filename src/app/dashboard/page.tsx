@@ -57,6 +57,8 @@ export default function DashboardPage() {
       
       if (result.success) {
         console.log('✅ Loaded calls from database:', result.data.counts);
+        console.log('📋 Call sessions data:', result.data.callSessions?.length || 0);
+        console.log('📋 First call session:', result.data.callSessions?.[0]);
         setApiCallSessions(result.data.callSessions || []);
         setApiAppointmentRequests(result.data.appointmentRequests || []);
         setHasLoadedFromDatabase(true);
